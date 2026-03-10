@@ -33,8 +33,10 @@ struct LogEntry {
 }
 
 fn log_dir() -> Result<PathBuf, Error> {
-    let home = std::env::var("HOME").map_err(Error::HomeNotSet)?;
-    Ok(PathBuf::from(home).join("dev/.claude/.logs"))
+    let state_dir = std::env::var("XDG_STATE_HOME")
+        .or_else(|_| std::env::var("HOME").map(|home| format!("{home}/.local/state")))
+        .map_err(Error::HomeNotSet)?;
+    Ok(PathBuf::from(state_dir).join("claude-hooks"))
 }
 
 fn log_path() -> Result<PathBuf, Error> {

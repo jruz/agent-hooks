@@ -56,7 +56,7 @@ Claude Code hooks communicate via JSON on stdout:
 
 ## Logging
 
-Errors are logged as JSONL to `~/dev/.claude/.logs/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr.
+Errors are logged as JSONL to `~/.local/state/claude-hooks/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
 
 ## Adding a Hook Action
 
