@@ -1,4 +1,5 @@
 mod hook_response;
+mod pre_tool_use;
 mod stop;
 
 use clap::{Parser, Subcommand};
@@ -11,11 +12,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    PreToolUse,
     Stop,
 }
 
 fn run_command(command: &Commands) -> Result<Option<String>, Box<dyn std::error::Error>> {
     match command {
+        Commands::PreToolUse => Ok(pre_tool_use::run()?),
         Commands::Stop => Ok(stop::run()?),
     }
 }
