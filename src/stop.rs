@@ -8,7 +8,7 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use crate::hook_response;
+use crate::shared::response;
 
 #[derive(Error, Debug)]
 pub enum StopError {
@@ -23,7 +23,7 @@ pub enum StopError {
     #[error("{0}")]
     SlopDetector(#[from] slop_detector::SlopDetectorError),
     #[error("{0}")]
-    Zellij(#[from] zellij::ZellijError),
+    Zellij(#[from] crate::shared::zellij::Error),
 }
 
 fn justfile_exists() -> bool {
@@ -35,7 +35,7 @@ pub fn run() -> Result<Option<String>, StopError> {
     zellij::run()?;
 
     if let Some(output) = slop_detector::run()? {
-        let json = hook_response::block(format!("slop-detector failed:\n{output}"))?;
+        let json = response::block(format!("slop-detector failed:\n{output}"))?;
         return Ok(Some(json));
     }
 
@@ -43,7 +43,7 @@ pub fn run() -> Result<Option<String>, StopError> {
         just_fix::run()?;
 
         if let Some(output) = just_check::run()? {
-            let json = hook_response::block(format!("just check failed:\n{output}"))?;
+            let json = response::block(format!("just check failed:\n{output}"))?;
             return Ok(Some(json));
         }
     }

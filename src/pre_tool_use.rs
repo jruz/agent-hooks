@@ -5,7 +5,7 @@ mod input;
 
 use thiserror::Error;
 
-use crate::hook_response;
+use crate::shared::response;
 
 #[derive(Error, Debug)]
 pub enum PreToolUseError {
@@ -24,7 +24,7 @@ pub fn run() -> Result<Option<String>, PreToolUseError> {
         .err();
 
     match block_reason {
-        Some(reason) => Ok(Some(hook_response::block(reason)?)),
+        Some(reason) => Ok(Some(response::block(reason)?)),
         None => Ok(None),
     }
 }

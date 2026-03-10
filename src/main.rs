@@ -1,5 +1,5 @@
-mod hook_response;
 mod pre_tool_use;
+mod shared;
 mod stop;
 
 use clap::{Parser, Subcommand};

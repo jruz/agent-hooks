@@ -3,4 +3,5 @@ no-return-ok = [
     "src/pre_tool_use/bash_rules.rs",
     "src/pre_tool_use/block_secrets.rs",
     "src/pre_tool_use/commit_msg_check.rs",
+    "src/shared/zellij.rs",
 ]
