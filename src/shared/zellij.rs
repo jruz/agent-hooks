@@ -9,23 +9,20 @@ use thiserror::Error;
 pub enum Error {
     #[error("failed to create signal dir: {0}")]
     CreateDir(std::io::Error),
-    #[error("failed to get temp dir: {0}")]
-    TempDir(std::io::Error),
     #[error("failed to get uid: {0}")]
     Uid(std::io::Error),
     #[error("failed to write signal file: {0}")]
     WriteSignal(std::io::Error),
 }
 
-fn get_darwin_temp_dir() -> Result<String, Error> {
-    let output = Command::new("getconf")
-        .arg("DARWIN_USER_TEMP_DIR")
-        .output()
-        .map_err(Error::TempDir)?;
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+fn temp_dir() -> PathBuf {
+    match env::var("XDG_RUNTIME_DIR").or_else(|_| env::var("TMPDIR")) {
+        Ok(dir) => PathBuf::from(dir),
+        Err(_) => PathBuf::from("/tmp"),
+    }
 }
 
-fn get_uid() -> Result<String, Error> {
+fn uid() -> Result<String, Error> {
     let output = Command::new("id").arg("-u").output().map_err(Error::Uid)?;
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
@@ -36,10 +33,8 @@ pub fn write_signal(content: &str) -> Result<(), Error> {
         return Ok(());
     };
 
-    let tmpdir = get_darwin_temp_dir()?;
-    let uid = get_uid()?;
-    let dir = PathBuf::from(tmpdir)
-        .join(format!("zellij-{uid}"))
+    let dir = temp_dir()
+        .join(format!("zellij-{}", uid()?))
         .join("tab-renamer-signals")
         .join(session);
 

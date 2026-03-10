@@ -5,3 +5,6 @@ no-return-ok = [
     "src/pre_tool_use/commit_msg_check.rs",
     "src/shared/zellij.rs",
 ]
+no-swallowed-err = [
+    "src/shared/zellij.rs",
+]
