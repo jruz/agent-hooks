@@ -67,3 +67,48 @@ fn blocks_grep_ssh_key() {
         "Access to sensitive file blocked"
     );
 }
+
+#[test]
+fn blocks_read_etc_shadow() {
+    let output = run_pre_tool_use(&file_payload("Read", "/etc/shadow"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_read_etc_passwd() {
+    let output = run_pre_tool_use(&file_payload("Read", "/etc/passwd"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_grep_etc_gshadow() {
+    let output = run_pre_tool_use(&file_payload("Grep", "/etc/gshadow"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_read_etc_sudoers() {
+    let output = run_pre_tool_use(&file_payload("Read", "/etc/sudoers"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_read_etc_master_passwd() {
+    let output = run_pre_tool_use(&file_payload("Read", "/etc/master.passwd"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}

@@ -242,3 +242,39 @@ fn allows_cargo_build() {
     let output = run_pre_tool_use(&bash("cargo build"));
     assert!(blocked_reason(&output).is_none());
 }
+
+#[test]
+fn blocks_cat_etc_shadow() {
+    let output = run_pre_tool_use(&bash("cat /etc/shadow"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_cat_etc_passwd() {
+    let output = run_pre_tool_use(&bash("cat /etc/passwd"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_grep_etc_shadow() {
+    let output = run_pre_tool_use(&bash("grep root /etc/shadow"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}
+
+#[test]
+fn blocks_ssh_cat_etc_shadow() {
+    let output = run_pre_tool_use(&bash("ssh user@host cat /etc/shadow"));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to system secret file blocked"
+    );
+}

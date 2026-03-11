@@ -62,6 +62,20 @@ fn rules() -> Vec<Rule> {
             message: "Never access .env files directly",
         },
         Rule {
+            matches: |cmd| {
+                [
+                    "/etc/shadow",
+                    "/etc/passwd",
+                    "/etc/gshadow",
+                    "/etc/sudoers",
+                    "/etc/master.passwd",
+                ]
+                .iter()
+                .any(|path| cmd.contains(path))
+            },
+            message: "Access to system secret file blocked",
+        },
+        Rule {
             matches: |cmd| cmd.starts_with("gleam run"),
             message: "Use just run instead",
         },
