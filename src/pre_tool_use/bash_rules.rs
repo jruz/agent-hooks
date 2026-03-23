@@ -98,6 +98,13 @@ fn rules() -> Vec<Rule> {
             matches: |cmd| Regex::new("^git filter-branch.*--all").is_ok_and(|re| re.is_match(cmd)),
             message: "Never use --all with git filter-branch \u{2014} it overwrites backup branches. Target specific branches instead.",
         },
+        Rule {
+            matches: |cmd| {
+                Regex::new(r"^git\s+commit\b").is_ok_and(|re| re.is_match(cmd))
+                    && cmd.contains("Co-Authored-By")
+            },
+            message: "Never include Co-Authored-By in commit messages",
+        },
     ]
 }
 

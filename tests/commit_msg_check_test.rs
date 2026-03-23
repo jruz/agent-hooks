@@ -92,9 +92,17 @@ fn blocks_missing_description_after_colon() {
 #[test]
 fn allows_valid_heredoc_commit() {
     let output = run_pre_tool_use(&bash(
-        "git commit -m \"$(cat <<'EOF'\n[feat] Auth: add login\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"",
+        "git commit -m \"$(cat <<'EOF'\n[feat] Auth: add login\nEOF\n)\"",
     ));
     assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_heredoc_commit_with_co_authored_by() {
+    let output = run_pre_tool_use(&bash(
+        "git commit -m \"$(cat <<'EOF'\n[feat] Auth: add login\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\"",
+    ));
+    assert!(blocked_reason(&output).is_some());
 }
 
 #[test]

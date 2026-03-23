@@ -284,3 +284,20 @@ fn blocks_ssh_cat_etc_shadow() {
         "Access to system secret file blocked"
     );
 }
+
+#[test]
+fn blocks_git_commit_with_co_authored_by() {
+    let output = run_pre_tool_use(&bash(
+        r#"git commit -m "[feat] Auth: add login" --trailer "Co-Authored-By: Claude <noreply@anthropic.com>""#,
+    ));
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Never include Co-Authored-By in commit messages"
+    );
+}
+
+#[test]
+fn allows_git_commit_without_co_authored_by() {
+    let output = run_pre_tool_use(&bash(r#"git commit -m "[feat] Auth: add login""#));
+    assert!(blocked_reason(&output).is_none());
+}
