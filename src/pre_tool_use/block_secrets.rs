@@ -15,6 +15,10 @@ pub fn check(input: &ToolInput) -> Result<(), String> {
         return Ok(());
     };
 
+    if is_envrc(file_path) {
+        return Ok(());
+    }
+
     if is_encrypted_env(file_path) {
         return Ok(());
     }
@@ -32,6 +36,12 @@ pub fn check(input: &ToolInput) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn is_envrc(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("envrc"))
 }
 
 fn is_encrypted_env(path: &str) -> bool {

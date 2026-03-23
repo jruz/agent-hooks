@@ -7,7 +7,14 @@ struct Rule {
     message: &'static str,
 }
 
+fn is_envrc(command: &str) -> bool {
+    command.contains(".envrc")
+}
+
 fn has_bare_dot_env(command: &str) -> bool {
+    if is_envrc(command) {
+        return false;
+    }
     Regex::new(r"^git\s+(add|commit)\b").is_ok_and(|exclude| {
         if exclude.is_match(command) {
             return false;

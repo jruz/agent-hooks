@@ -33,6 +33,18 @@ fn blocks_read_ssh_key() {
 }
 
 #[test]
+fn allows_read_envrc() {
+    let output = run_pre_tool_use(&file_payload("Read", ".envrc"));
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_read_envrc_in_path() {
+    let output = run_pre_tool_use(&file_payload("Read", "/home/user/project/.envrc"));
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
 fn allows_read_encrypted_env() {
     let output = run_pre_tool_use(&file_payload("Read", ".env.production.yaml"));
     assert!(blocked_reason(&output).is_none());

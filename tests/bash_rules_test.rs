@@ -141,6 +141,12 @@ fn blocks_env_in_path() {
 }
 
 #[test]
+fn allows_cat_envrc() {
+    let output = run_pre_tool_use(&bash("cat .envrc"));
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
 fn allows_env_example() {
     let output = run_pre_tool_use(&bash("cat .env.example"));
     assert!(blocked_reason(&output).is_none());
