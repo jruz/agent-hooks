@@ -29,6 +29,7 @@ rust-check:
     just rust-fmt-check
     just rust-clippy-check
     just rust-test
+    just woodpecker-check
 
 rust-clippy-check *ARGS='':
     cargo clippy --all-targets {{ARGS}}
@@ -67,3 +68,10 @@ rust-watch:
 rust-upgrade:
     cargo upgrade --incompatible
     cargo update
+
+# ────────────────────────────── woodpecker ──────────────────────────────
+
+woodpecker-check:
+    woodpecker-cli lint \
+        --strict \
+        .woodpecker/

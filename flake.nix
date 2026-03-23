@@ -16,12 +16,14 @@
         rustVersion = rustToolchain.toolchain.channel;
         rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         commonPackages = with pkgs; [
+          bun
           cargo-edit
           cargo-nextest
           cargo-outdated
           cargo-watch
           just
           rust
+          woodpecker-cli
         ];
         darwinPackages = with pkgs; [ libiconv ];
         linuxPackages = with pkgs; [ glibc glibcLocales ];
@@ -40,6 +42,8 @@
             echo "  Rust Development Shell"
             echo "  ───────────────────────────"
             echo "  Rust:        ${rustVersion}"
+            echo "  Bun:         ${pkgs.bun.version}"
+            echo "  Woodpecker:  ${pkgs.woodpecker-cli.version}"
             echo ""
           '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             export LOCALE_ARCHIVE="${pkgs.glibcLocales}/lib/locale/locale-archive"

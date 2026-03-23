@@ -1,0 +1,32 @@
+repo:
+  name: jruz/claude-hooks
+secrets:
+  CODEBERG_TOKEN:
+    events:
+    - tag
+    - push
+    value: |
+      -----BEGIN AGE ENCRYPTED FILE-----
+      YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBWMXhaRGlic2tCTkhONmpH
+      N1hnemZkYlhTcmJjRC8zYW50L2QwR21CUmlFCldqaVNBZ2ZldnpPRU12N2dSd0NR
+      THl2NUZwei9EUElDSWVHaHVvWXFiZVEKLT4gXTVFUmwtZ3JlYXNlCmVTN2RkTERV
+      SkVMLzYzcFdZNytvUzZzTmpFWmNncjdFNVRxeUk4cFE5dkh2QlI4TzJHOWlIUHVP
+      ZzVtTmFqK3cKbXp5MHREQmw2czRWWEJaVVRMUWNmQmpaMzVTRTZRCi0tLSBoemND
+      WCtYaFJrVmE3RGRxVWtkVnh5UVlIU3J2eXFuWENtSlpBaUs4M0U4CkAcFscSUhDF
+      CJcZY9EJi8vJN0EWyfZp/xokXAY2/uRQFehPNhe13/tI32sfWtS/FhN5KUXRBN5W
+      cAV10FP6PfZ0X01HEwD1rA==
+      -----END AGE ENCRYPTED FILE-----
+settings:
+  allow_deploy: false
+  allow_pr: true
+  cancel_previous_pipeline_events:
+  - push
+  - pull_request
+  config_extension_endpoint: ''
+  require_approval: forks
+  timeout: 60
+  trusted:
+    network: false
+    security: false
+    volumes: true
+  visibility: public
