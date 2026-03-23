@@ -75,3 +75,19 @@ woodpecker-check:
     woodpecker-cli lint \
         --strict \
         .woodpecker/
+
+# ─────────────────────────────── release ───────────────────────────────
+
+release-build-linux:
+    scripts/release-build.sh unknown-linux-gnu x86_64
+    scripts/release-build.sh unknown-linux-gnu aarch64
+
+release-build-macos:
+    scripts/release-build.sh apple-darwin x86_64
+    scripts/release-build.sh apple-darwin aarch64
+
+release-upload TAG:
+    bun scripts/release-upload.ts {{ TAG }}
+
+release-delete TAG:
+    bun scripts/release-delete.ts {{ TAG }}

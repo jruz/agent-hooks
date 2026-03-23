@@ -2,12 +2,14 @@ mod pre_tool_use;
 mod prompt_submit;
 mod shared;
 mod stop;
+mod version;
 
 use std::collections::HashMap;
 
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
+#[command(version = version::clap_version())]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

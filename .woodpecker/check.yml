@@ -7,6 +7,8 @@ when:
 steps:
   - name: CHECK
     image: 127.0.0.1:5000/woodpecker-job:v0.0.17
+    environment:
+      REVISION: $${CI_COMMIT_SHA}
     commands:
       - . /entrypoint.sh
       - nix develop --command just install
