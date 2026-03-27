@@ -2,8 +2,6 @@ mod claude_trees;
 mod just_check;
 mod just_fix;
 mod slop_detector;
-mod zellij;
-
 use std::path::Path;
 
 use thiserror::Error;
@@ -22,8 +20,6 @@ pub enum StopError {
     Serialize(#[from] serde_json::Error),
     #[error("{0}")]
     SlopDetector(#[from] slop_detector::SlopDetectorError),
-    #[error("{0}")]
-    Zellij(#[from] crate::shared::zellij::Error),
 }
 
 fn justfile_exists() -> bool {
@@ -32,7 +28,6 @@ fn justfile_exists() -> bool {
 
 pub fn run() -> Result<Option<String>, StopError> {
     claude_trees::run()?;
-    zellij::run()?;
 
     if let Some(output) = slop_detector::run()? {
         let json = response::block(format!("slop-detector failed:\n{output}"))?;

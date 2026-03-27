@@ -1,5 +1,4 @@
 mod pre_tool_use;
-mod prompt_submit;
 mod shared;
 mod stop;
 mod version;
@@ -18,17 +17,12 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     PreToolUse,
-    PromptSubmit,
     Stop,
 }
 
 fn run_command(command: &Commands) -> Result<Option<String>, Box<dyn std::error::Error>> {
     match command {
         Commands::PreToolUse => Ok(pre_tool_use::run()?),
-        Commands::PromptSubmit => {
-            prompt_submit::run()?;
-            Ok(None)
-        }
         Commands::Stop => Ok(stop::run()?),
     }
 }

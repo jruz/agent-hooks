@@ -7,7 +7,6 @@ Rust CLI that runs Claude Code hooks. One subcommand per hook event.
 ```
 claude-hooks stop           # Stop hook
 claude-hooks pre-tool-use   # PreToolUse hook (reads stdin)
-claude-hooks prompt-submit  # UserPromptSubmit hook
 ```
 
 Configured in `~/.claude/settings.json` as hook commands.
@@ -17,7 +16,6 @@ Configured in `~/.claude/settings.json` as hook commands.
 ```
 src/
   main.rs                # clap CLI, dispatches subcommands, handles output and error logging
-  prompt_submit.rs       # PromptSubmit hook — signals zellij with "thinking"
   pre_tool_use.rs        # PreToolUse hook orchestrator
   pre_tool_use/
     input.rs             # stdin JSON deserialization
@@ -27,14 +25,12 @@ src/
   stop.rs                # Stop hook orchestrator
   stop/
     claude_trees.rs      # signal claude-trees tab
-    zellij.rs            # signal zellij tab renamer
     slop_detector.rs     # run slop-detector binary
     just_fix.rs          # run just fix
     just_check.rs        # run just check
   shared/
     mod.rs               # shared module exports
     response.rs          # JSON response builders (block, etc.)
-    zellij.rs            # zellij signal writer (configurable content)
     logger.rs            # structured JSONL file logger
 ```
 
