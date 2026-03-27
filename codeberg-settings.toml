@@ -23,7 +23,7 @@ has_issues = true
 has_packages = false
 has_projects = false
 has_pull_requests = true
-has_releases = false
+has_releases = true
 has_wiki = false
 ignore_whitespace_conflicts = false
 mirror_interval = ""
@@ -42,7 +42,7 @@ enable_time_tracker = true
 apply_to_admins = true
 enable_push = true
 enable_status_check = true
-status_check_contexts = []
+status_check_contexts = ["ci/woodpecker/pr/check"]
 
 [labels.bugs]
 color = "d73a4a"
