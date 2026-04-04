@@ -1,7 +1,9 @@
 install:
-    cargo install --path . --force
+    sandbox cargo install --path . --force
 
 check:
+    just nix-check
+    just woodpecker-check
     just rust-check
 
 test:
@@ -14,28 +16,43 @@ watch:
     just rust-watch
 
 fix:
+    just nix-fix
     just rust-fix
+
+# ──────────────────────────────── nix ────────────────────────────────
+
+nix-check:
+    fd \
+        --extension nix \
+        --exec nixfmt --check
+    statix check .
+    deadnix --fail .
+
+nix-fix:
+    fd \
+        --extension nix \
+        --exec nixfmt
+    statix fix .
+    deadnix --edit .
 
 # ─────────────────────────────── rust ───────────────────────────────
 
 rust-build:
-    cargo build --all-targets
+    sandbox cargo build --all-targets
 
 rust-cargo-check:
-    cargo check --all-targets
+    sandbox cargo check --all-targets
 
 rust-check:
     just rust-cargo-check
     just rust-fmt-check
     just rust-clippy-check
-    just rust-test
-    just woodpecker-check
 
 rust-clippy-check *ARGS='':
-    cargo clippy --all-targets {{ARGS}}
+    sandbox cargo clippy --all-targets {{ARGS}}
 
 rust-clippy-fix *ARGS='':
-    cargo clippy \
+    sandbox cargo clippy \
         --fix \
         --all-targets \
         --allow-dirty \
@@ -46,28 +63,28 @@ rust-fix:
     just rust-clippy-fix
 
 rust-fmt-check:
-    cargo fmt --all -- --check
+    sandbox cargo fmt --all -- --check
 
 rust-fmt-fix:
-    cargo fmt --all
+    sandbox cargo fmt --all
 
 rust-outdated:
-    cargo outdated
+    sandbox cargo outdated
 
 rust-test *FILTER='':
-    cargo nextest run \
+    sandbox cargo nextest run \
         --no-tests=pass \
         {{FILTER}}
 
 rust-run *ARGS='':
-    cargo run -- {{ARGS}}
+    sandbox cargo run -- {{ARGS}}
 
 rust-watch:
-    cargo watch --exec run
+    sandbox cargo watch --exec run
 
 rust-upgrade:
-    cargo upgrade --incompatible
-    cargo update
+    sandbox cargo upgrade --incompatible
+    sandbox cargo update
 
 # ────────────────────────────── woodpecker ──────────────────────────────
 
@@ -79,15 +96,18 @@ woodpecker-check:
 # ─────────────────────────────── release ───────────────────────────────
 
 release-build-linux:
-    scripts/release-build.sh unknown-linux-gnu x86_64
-    scripts/release-build.sh unknown-linux-gnu aarch64
+    sandbox scripts/release-build.sh unknown-linux-gnu x86_64
+    sandbox scripts/release-build.sh unknown-linux-gnu aarch64
 
 release-build-macos:
-    scripts/release-build.sh apple-darwin x86_64
-    scripts/release-build.sh apple-darwin aarch64
+    sandbox scripts/release-build.sh apple-darwin x86_64
+    sandbox scripts/release-build.sh apple-darwin aarch64
 
 release-upload TAG:
-    bun scripts/release-upload.ts {{ TAG }}
+    sandbox bun scripts/release-upload.ts {{ TAG }}
 
 release-delete TAG:
-    bun scripts/release-delete.ts {{ TAG }}
+    sandbox bun scripts/release-delete.ts {{ TAG }}
+
+sandbox-test:
+    sandbox bun scripts/sandbox-test.ts
