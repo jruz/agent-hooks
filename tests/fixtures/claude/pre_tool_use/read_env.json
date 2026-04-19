@@ -1,0 +1,12 @@
+{
+  "session_id": "claude-session",
+  "transcript_path": "/tmp/claude-transcript.jsonl",
+  "cwd": "/tmp/project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/tmp/project/.env"
+  },
+  "tool_use_id": "toolu_01ReadFixture"
+}

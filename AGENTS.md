@@ -1,15 +1,39 @@
 # claude-hooks
 
-Rust CLI that runs Claude Code hooks. One subcommand per hook event.
+Rust CLI that runs Claude Code and Codex hooks. `pre-tool-use` is agent-specific; `stop` is shared.
 
 ## Usage
 
-```
-claude-hooks stop           # Stop hook
-claude-hooks pre-tool-use   # PreToolUse hook (reads stdin)
+```sh
+claude-hooks pre-tool-use --agent claude # Claude PreToolUse hook (reads stdin)
+claude-hooks stop                        # Shared Stop hook
+claude-hooks pre-tool-use --agent codex  # Codex PreToolUse hook (reads stdin)
 ```
 
-Configured in `~/.claude/settings.json` as hook commands.
+Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `claude-hooks stop` for both Claude and Codex.
+
+## Hook Files
+
+- `~/.claude/settings.json`
+- `~/.codex/hooks.json`
+- `~/.codex/hooks/Stop`
+- `~/.codex/hooks/UserPromptSubmit`
+
+## Tooling
+
+`cargo` and `bun` are only available inside the project sandbox. Do not run `cargo ...` or `bun ...` directly from the shell.
+
+Use the `just` recipes instead so they execute through the repo's sandbox wrapper:
+
+- `just check`
+- `just test`
+- `just fix`
+- `just run ...`
+- `just rust-build`
+- `just rust-check`
+- `just rust-test`
+- `just release-upload <tag>`
+- `just release-delete <tag>`
 
 ## Architecture
 
@@ -18,19 +42,24 @@ src/
   main.rs                # clap CLI, dispatches subcommands, handles output and error logging
   pre_tool_use.rs        # PreToolUse hook orchestrator
   pre_tool_use/
-    input.rs             # stdin JSON deserialization
-    block_secrets.rs     # block Read/Grep on .env/.ssh files
-    commit_msg_check.rs  # validate commit title format
-    bash_rules.rs        # block banned bash command patterns
+    claude.rs            # Claude-specific payload parsing and response rendering
+    codex.rs             # Codex-specific payload parsing and response rendering
+    filters.rs           # shared PreToolUse filter exports
+    filters/
+      bash.rs            # block banned bash command patterns
+      commit_msg.rs      # validate commit title format
+      secrets.rs         # block Read/Grep on .env/.ssh files
   stop.rs                # Stop hook orchestrator
   stop/
-    claude_trees.rs      # signal claude-trees tab
     slop_detector.rs     # run slop-detector binary
     just_fix.rs          # run just fix
     just_check.rs        # run just check
   shared/
+    agent.rs             # shared clap value enum for --agent
+    command.rs           # shared command output helpers
+    env.rs               # shared environment path helpers
     mod.rs               # shared module exports
-    response.rs          # JSON response builders (block, etc.)
+    response.rs          # hook JSON response builders
     logger.rs            # structured JSONL file logger
 ```
 
@@ -38,7 +67,8 @@ src/
 
 - one file per hook action, named after the tool it wraps
 - hook modules return raw data, orchestrators handle blocking logic
-- `shared/response` builds the JSON that Claude Code expects
+- provider-specific wire parsing stays at the event edge; shared modules hold policy and stop action logic
+- `shared/response` builds the JSON hook callers expect
 - `main.rs` owns all printing (stdout/stderr) and error logging to file
 - each module has its own thiserror enum
 - event modules use `self_named_module_files` style, `shared/` uses `mod.rs`
@@ -49,6 +79,9 @@ Claude Code hooks communicate via JSON on stdout:
 
 - **block**: `{"decision": "block", "reason": "..."}` — stops Claude and shows the reason
 - no output — hook passes silently
+
+Codex `pre-tool-use` deny responses use `hookSpecificOutput.permissionDecision = "deny"`.
+Codex `pre-tool-use` currently only handles `Bash` events.
 
 ## Logging
 

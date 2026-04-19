@@ -1,0 +1,14 @@
+{
+  "cwd": "/tmp/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-5-codex",
+  "permission_mode": "workspace-write",
+  "session_id": "codex-session",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/tmp/project/.env"
+  },
+  "tool_use_id": "call_read_fixture",
+  "transcript_path": "/tmp/codex-transcript.jsonl",
+  "turn_id": "turn_001"
+}

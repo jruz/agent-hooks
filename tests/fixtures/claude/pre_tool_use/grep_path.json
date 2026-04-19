@@ -1,0 +1,13 @@
+{
+  "session_id": "claude-session",
+  "transcript_path": "/tmp/claude-transcript.jsonl",
+  "cwd": "/tmp/project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Grep",
+  "tool_input": {
+    "pattern": "main",
+    "path": "src/main.rs"
+  },
+  "tool_use_id": "toolu_01GrepFixture"
+}

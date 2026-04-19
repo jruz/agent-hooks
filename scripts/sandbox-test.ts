@@ -43,8 +43,9 @@ const blockedPaths = [
   "/root",
 ];
 
+const sshDir = join(home, ".ssh");
 const results = [
-  checkDirAllowlist(join(home, ".ssh"), ["known_hosts"]),
+  checkDirAllowlist(sshDir, ["known_hosts"]),
   checkDirAllowlist(projectsDir, [projectName]),
   ...blockedPaths.map(checkBlocked),
 ];

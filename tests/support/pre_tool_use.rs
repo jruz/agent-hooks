@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Write as _;
-use std::process::{Command, Output, Stdio};
+use std::process::{Command, Output};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -28,19 +28,9 @@ pub fn payload(tool_name: &str, tool_input: HashMap<String, Value>) -> PreToolUs
     }
 }
 
-pub fn run_pre_tool_use(p: &PreToolUsePayload) -> Output {
-    let json = serde_json::to_string(p).expect("serialize payload");
-
-    let mut tmp = tempfile::NamedTempFile::new().expect("create temp file");
-    tmp.write_all(json.as_bytes()).expect("write temp file");
-    let tmp_path = tmp.into_temp_path();
-
-    let stdin_file = std::fs::File::open(&tmp_path).expect("open temp file");
-    Command::new(env!("CARGO_BIN_EXE_claude-hooks"))
-        .arg("pre-tool-use")
-        .stdin(Stdio::from(stdin_file))
-        .output()
-        .expect("run binary")
+pub fn run_pre_tool_use(payload: &PreToolUsePayload) -> Output {
+    let json = serde_json::to_string(payload).expect("serialize payload");
+    run_pre_tool_use_json(&json)
 }
 
 pub fn blocked_reason(output: &Output) -> Option<String> {
@@ -53,4 +43,28 @@ pub fn blocked_reason(output: &Output) -> Option<String> {
         .get("reason")
         .and_then(serde_json::Value::as_str)
         .map(String::from)
+        .or_else(|| {
+            parsed
+                .get("hookSpecificOutput")
+                .and_then(|value| value.get("permissionDecisionReason"))
+                .and_then(serde_json::Value::as_str)
+                .map(String::from)
+        })
+}
+
+fn run_pre_tool_use_json(stdin_json: &str) -> Output {
+    let mut tmp = tempfile::NamedTempFile::new().expect("create temp file");
+    let stdin_bytes = stdin_json.as_bytes();
+    tmp.write_all(stdin_bytes).expect("write temp file");
+    let tmp_path = tmp.into_temp_path();
+
+    let stdin_file = std::fs::File::open(tmp_path).expect("open temp file");
+    let binary = env!("CARGO_BIN_EXE_claude-hooks");
+    Command::new(binary)
+        .arg("pre-tool-use")
+        .arg("--agent")
+        .arg("claude")
+        .stdin(stdin_file)
+        .output()
+        .expect("run binary")
 }

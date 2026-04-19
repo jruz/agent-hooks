@@ -31,6 +31,7 @@
         rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         revision = self.rev or "dirty";
         commonPackages = with pkgs; [
+          curl
           deadnix
           fd
           git
@@ -58,6 +59,7 @@
           cargo-outdated
           cargo-watch
           cargo-zigbuild
+          neovim
           zig
         ];
         sandboxPath = lib.makeBinPath (
@@ -78,6 +80,12 @@
             --symlink ${pkgs.coreutils}/bin/env /usr/bin/env
             --symlink ${pkgs.bash}/bin/bash /bin/sh
             --tmpfs "$HOME"
+            --dir "$HOME/.config"
+            --dir "$HOME/.local"
+            --dir "$HOME/.local/share"
+            --dir "$HOME/.local/state"
+            --dir "$HOME/.cache"
+            --dir "$HOME/.supermaven"
             --bind "$PROJECT_DIR" "$PROJECT_DIR"
             --bind /tmp /tmp
             --setenv HOME "$HOME"
@@ -95,6 +103,11 @@
 
           [[ -f "$HOME/.gitconfig" ]] && ARGS+=(--ro-bind "$HOME/.gitconfig" "$HOME/.gitconfig")
           [[ -f "$HOME/.ssh/known_hosts" ]] && ARGS+=(--ro-bind "$HOME/.ssh/known_hosts" "$HOME/.ssh/known_hosts")
+          [[ -d "$HOME/.config/nvim" ]] && ARGS+=(--bind "$HOME/.config/nvim" "$HOME/.config/nvim")
+          [[ -d "$HOME/.local/share/nvim" ]] && ARGS+=(--bind "$HOME/.local/share/nvim" "$HOME/.local/share/nvim")
+          [[ -d "$HOME/.local/state/nvim" ]] && ARGS+=(--bind "$HOME/.local/state/nvim" "$HOME/.local/state/nvim")
+          [[ -d "$HOME/.cache/nvim" ]] && ARGS+=(--bind "$HOME/.cache/nvim" "$HOME/.cache/nvim")
+          [[ -d "$HOME/.supermaven" ]] && ARGS+=(--bind "$HOME/.supermaven" "$HOME/.supermaven")
 
           mkdir -p "$HOME/.bun"
           ARGS+=(--bind "$HOME/.bun" "$HOME/.bun")

@@ -1,32 +1,21 @@
 use regex::Regex;
 
-use super::input::ToolInput;
-
 const COMMIT_TITLE_PATTERN: &str = r"^\[(feat|bugs|refa|deps|tool)\] \S+.*: .+";
 
-pub fn check(input: &ToolInput) -> Result<(), String> {
-    let ToolInput::Bash { command } = input else {
-        return Ok(());
-    };
+pub fn run(command: &str) -> Result<(), String> {
+    if is_git_commit(command) && !should_skip(command) {
+        let title = extract_title(command);
 
-    if !is_git_commit(command) {
-        return Ok(());
-    }
+        let Some(title) = title else {
+            let reason = "Could not extract commit title".to_string();
+            return Err(reason);
+        };
 
-    if should_skip(command) {
-        return Ok(());
-    }
-
-    let title = extract_title(command);
-
-    let Some(title) = title else {
-        return Err("Could not extract commit title".to_string());
-    };
-
-    if !validate_title(&title) {
-        return Err(format!(
-            "Invalid commit title: '{title}' \u{2014} Follow the Skill(commit) format"
-        ));
+        if !validate_title(&title) {
+            return Err(format!(
+                "Invalid commit title: '{title}' \u{2014} Follow the Skill(commit) format"
+            ));
+        }
     }
 
     Ok(())
@@ -49,7 +38,8 @@ fn extract_inline_title(command: &str) -> Option<String> {
     if first_line.is_empty() {
         return None;
     }
-    Some(first_line.to_string())
+    let title = first_line.to_string();
+    Some(title)
 }
 
 fn extract_title(command: &str) -> Option<String> {

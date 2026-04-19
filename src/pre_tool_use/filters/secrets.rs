@@ -1,7 +1,5 @@
 use regex::Regex;
 
-use super::input::ToolInput;
-
 const SYSTEM_SECRETS: &[&str] = &[
     "/etc/shadow",
     "/etc/passwd",
@@ -10,32 +8,23 @@ const SYSTEM_SECRETS: &[&str] = &[
     "/etc/master.passwd",
 ];
 
-pub fn check(input: &ToolInput) -> Result<(), String> {
-    let (ToolInput::Read { file_path } | ToolInput::Grep { file_path }) = input else {
-        return Ok(());
-    };
+pub fn run(file_path: &str) -> Result<(), String> {
+    let allowlisted =
+        is_envrc(file_path) || is_encrypted_env(file_path) || is_ssh_config(file_path);
+    let system_secret = is_system_secret(file_path);
+    let sensitive = is_sensitive(file_path);
 
-    if is_envrc(file_path) {
-        return Ok(());
+    if allowlisted {
+        Ok(())
+    } else if system_secret {
+        let reason = "Access to system secret file blocked".to_string();
+        Err(reason)
+    } else if sensitive {
+        let reason = "Access to sensitive file blocked".to_string();
+        Err(reason)
+    } else {
+        Ok(())
     }
-
-    if is_encrypted_env(file_path) {
-        return Ok(());
-    }
-
-    if is_ssh_config(file_path) {
-        return Ok(());
-    }
-
-    if is_system_secret(file_path) {
-        return Err("Access to system secret file blocked".to_string());
-    }
-
-    if is_sensitive(file_path) {
-        return Err("Access to sensitive file blocked".to_string());
-    }
-
-    Ok(())
 }
 
 fn is_envrc(path: &str) -> bool {

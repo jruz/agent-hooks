@@ -1,10 +1,20 @@
 use regex::Regex;
 
-use super::input::ToolInput;
-
 struct Rule {
     matches: fn(&str) -> bool,
     message: &'static str,
+}
+
+pub fn run(command: &str) -> Result<(), String> {
+    let matching_rule = rules().into_iter().find(|rule| (rule.matches)(command));
+
+    match matching_rule {
+        Some(rule) => {
+            let message = rule.message.to_string();
+            Err(message)
+        }
+        None => Ok(()),
+    }
 }
 
 fn is_envrc(command: &str) -> bool {
@@ -61,7 +71,9 @@ fn rules() -> Vec<Rule> {
             message: "Access to sensitive command blocked",
         },
         Rule {
-            matches: |cmd| Regex::new("sops (--decrypt|decrypt)").is_ok_and(|re| re.is_match(cmd)),
+            matches: |cmd| {
+                Regex::new(r"sops (-d\b|--decrypt|decrypt)").is_ok_and(|re| re.is_match(cmd))
+            },
             message: "Don't decrypt sops files, just read them directly",
         },
         Rule {
@@ -106,18 +118,4 @@ fn rules() -> Vec<Rule> {
             message: "Never include Co-Authored-By in commit messages",
         },
     ]
-}
-
-pub fn check(input: &ToolInput) -> Result<(), String> {
-    let ToolInput::Bash { command } = input else {
-        return Ok(());
-    };
-    match_rule(command)
-}
-
-fn match_rule(command: &str) -> Result<(), String> {
-    match rules().into_iter().find(|rule| (rule.matches)(command)) {
-        Some(rule) => Err(rule.message.to_string()),
-        None => Ok(()),
-    }
 }

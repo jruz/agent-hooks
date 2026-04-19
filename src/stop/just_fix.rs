@@ -1,14 +1,16 @@
 use std::process::Command;
 
-use thiserror::Error;
+use crate::shared::command::combine_output;
 
-#[derive(Error, Debug)]
-pub enum JustFixError {
-    #[error("failed to run `just fix`: {0}")]
-    CommandFailed(#[from] std::io::Error),
-}
+pub fn run() -> Result<(), String> {
+    let output = Command::new("just")
+        .arg("fix")
+        .output()
+        .map_err(|err| format!("failed to run `just fix`: {err}"))?;
 
-pub fn run() -> Result<(), JustFixError> {
-    Command::new("just").arg("fix").status()?;
-    Ok(())
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format!("just fix failed:\n{}", combine_output(&output)))
+    }
 }

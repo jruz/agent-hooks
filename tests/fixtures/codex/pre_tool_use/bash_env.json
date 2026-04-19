@@ -1,0 +1,14 @@
+{
+  "cwd": "/tmp/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-5-codex",
+  "permission_mode": "workspace-write",
+  "session_id": "codex-session",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "cat .env"
+  },
+  "tool_use_id": "call_bash_fixture",
+  "transcript_path": "/tmp/codex-transcript.jsonl",
+  "turn_id": "turn_001"
+}

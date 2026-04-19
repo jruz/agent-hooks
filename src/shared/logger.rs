@@ -6,12 +6,14 @@ use std::path::PathBuf;
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::shared::env;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("failed to create log dir: {0}")]
     CreateDir(std::io::Error),
-    #[error("HOME not set: {0}")]
-    HomeNotSet(std::env::VarError),
+    #[error("{0}")]
+    Env(#[from] env::Error),
     #[error("failed to open log file: {0}")]
     OpenFile(std::io::Error),
     #[error("failed to serialize log entry: {0}")]
@@ -33,14 +35,15 @@ struct LogEntry {
 }
 
 fn log_dir() -> Result<PathBuf, Error> {
-    let state_dir = std::env::var("XDG_STATE_HOME")
-        .or_else(|_| std::env::var("HOME").map(|home| format!("{home}/.local/state")))
-        .map_err(Error::HomeNotSet)?;
-    Ok(PathBuf::from(state_dir).join("claude-hooks"))
+    let state_dir = env::state_home()?;
+    let path = state_dir.join("claude-hooks");
+    Ok(path)
 }
 
 fn log_path() -> Result<PathBuf, Error> {
-    Ok(log_dir()?.join("hooks.log"))
+    let dir = log_dir()?;
+    let path = dir.join("hooks.log");
+    Ok(path)
 }
 
 fn write_entry(entry: &LogEntry) -> Result<(), Error> {
@@ -49,10 +52,11 @@ fn write_entry(entry: &LogEntry) -> Result<(), Error> {
 
     let line = serde_json::to_string(entry).map_err(Error::Serialize)?;
 
+    let path = log_path()?;
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(log_path()?)
+        .open(path)
         .map_err(Error::OpenFile)?;
 
     writeln!(file, "{line}").map_err(Error::Write)?;

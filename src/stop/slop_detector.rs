@@ -1,22 +1,18 @@
 use std::process::Command;
 
-use thiserror::Error;
+use crate::shared::command::combine_output;
 
-#[derive(Error, Debug)]
-pub enum SlopDetectorError {
-    #[error("failed to run slop-detector: {0}")]
-    CommandFailed(#[from] std::io::Error),
-}
-
-pub fn run() -> Result<Option<String>, SlopDetectorError> {
-    let output = Command::new("slop-detector").output()?;
+pub fn run() -> Result<(), String> {
+    let output = Command::new("slop-detector")
+        .output()
+        .map_err(|err| format!("failed to run slop-detector: {err}"))?;
 
     if output.status.success() {
-        return Ok(None);
+        Ok(())
+    } else {
+        Err(format!(
+            "slop-detector failed:\n{}",
+            combine_output(&output)
+        ))
     }
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!("{stderr}\n{stdout}").trim().to_string();
-    Ok(Some(combined))
 }

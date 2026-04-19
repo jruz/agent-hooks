@@ -12,6 +12,12 @@ test:
 run *ARGS='':
     just rust-run {{ARGS}}
 
+nvim *ARGS='.':
+    sandbox nvim {{ARGS}}
+
+logs:
+    nvim ~/.local/state/claude-hooks/hooks.log
+
 watch:
     just rust-watch
 
