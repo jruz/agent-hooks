@@ -12,9 +12,8 @@ pub fn run(command: &str) -> Result<(), String> {
         };
 
         if !validate_title(&title) {
-            return Err(format!(
-                "Invalid commit title: '{title}' \u{2014} Follow the Skill(commit) format"
-            ));
+            let reason = "Invalid commit title, follow the Skill(commit) format".to_string();
+            return Err(reason);
         }
     }
 
