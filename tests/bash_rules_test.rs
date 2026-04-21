@@ -31,9 +31,9 @@ fn blocks_cargo_install_path() {
 }
 
 #[test]
-fn allows_cargo_install_registry() {
+fn blocks_cargo_install_registry() {
     let output = run_bash("cargo install ripgrep");
-    assert!(blocked_reason(&output).is_none());
+    assert!(blocked_reason(&output).is_some());
 }
 
 #[test]
@@ -61,9 +61,9 @@ fn blocks_npm_run() {
 }
 
 #[test]
-fn allows_npm_install() {
+fn blocks_npm_install() {
     let output = run_bash("npm install lodash");
-    assert!(blocked_reason(&output).is_none());
+    assert!(blocked_reason(&output).is_some());
 }
 
 #[test]
@@ -76,9 +76,9 @@ fn blocks_npx_playwright_install() {
 }
 
 #[test]
-fn allows_npx_playwright_test() {
+fn blocks_npx_playwright_test() {
     let output = run_bash("npx playwright test");
-    assert!(blocked_reason(&output).is_none());
+    assert!(blocked_reason(&output).is_some());
 }
 
 #[test]
@@ -263,8 +263,59 @@ fn allows_just_build() {
 }
 
 #[test]
-fn allows_cargo_build() {
+fn blocks_bare_cargo() {
     let output = run_bash("cargo build");
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available."
+    );
+}
+
+#[test]
+fn blocks_bare_bun() {
+    let output = run_bash("bun install");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_node() {
+    let output = run_bash("node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_python() {
+    let output = run_bash("python script.py");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_python3() {
+    let output = run_bash("python3 script.py");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_pnpm() {
+    let output = run_bash("pnpm install");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_deno() {
+    let output = run_bash("deno run script.ts");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandbox_cargo() {
+    let output = run_bash("sandbox cargo build");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_sandbox_bun() {
+    let output = run_bash("sandbox bun install");
     assert!(blocked_reason(&output).is_none());
 }
 

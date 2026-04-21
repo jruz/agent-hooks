@@ -117,5 +117,12 @@ fn rules() -> Vec<Rule> {
             },
             message: "Never include Co-Authored-By in commit messages",
         },
+        Rule {
+            matches: |cmd| {
+                Regex::new(r"^(cargo|bun|pnpm|node|python3?|npm|npx|deno)\b")
+                    .is_ok_and(|re| re.is_match(cmd))
+            },
+            message: "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available.",
+        },
     ]
 }
