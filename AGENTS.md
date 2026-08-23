@@ -1,16 +1,16 @@
-# claude-hooks
+# agent-hooks
 
 Rust CLI that runs Claude Code and Codex hooks. `pre-tool-use` is agent-specific; `stop` is shared.
 
 ## Usage
 
 ```sh
-claude-hooks pre-tool-use --agent claude # Claude PreToolUse hook (reads stdin)
-claude-hooks stop                        # Shared Stop hook
-claude-hooks pre-tool-use --agent codex  # Codex PreToolUse hook (reads stdin)
+agent-hooks pre-tool-use --agent claude # Claude PreToolUse hook (reads stdin)
+agent-hooks stop                        # Shared Stop hook
+agent-hooks pre-tool-use --agent codex  # Codex PreToolUse hook (reads stdin)
 ```
 
-Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `claude-hooks stop` for both Claude and Codex.
+Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `agent-hooks stop` for both Claude and Codex.
 
 ## Hook Files
 
@@ -85,7 +85,7 @@ Codex `pre-tool-use` currently only handles `Bash` events.
 
 ## Logging
 
-Errors are logged as JSONL to `~/.local/state/claude-hooks/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
+Errors are logged as JSONL to `~/.local/state/agent-hooks/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
 
 ## Adding a Hook Action
 

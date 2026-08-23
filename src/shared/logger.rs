@@ -36,7 +36,7 @@ struct LogEntry {
 
 fn log_dir() -> Result<PathBuf, Error> {
     let state_dir = env::state_home()?;
-    let path = state_dir.join("claude-hooks");
+    let path = state_dir.join("agent-hooks");
     Ok(path)
 }
 

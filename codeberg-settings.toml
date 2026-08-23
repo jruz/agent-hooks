@@ -1,5 +1,5 @@
 [repository]
-name = "claude-hooks"
+name = "agent-hooks"
 owner = "jruz"
 topics = ["rust", "claude-code", "cli", "hooks"]
 
@@ -27,7 +27,7 @@ has_releases = true
 has_wiki = false
 ignore_whitespace_conflicts = false
 mirror_interval = ""
-name = "claude-hooks"
+name = "agent-hooks"
 private = false
 template = false
 website = ""

@@ -59,7 +59,7 @@ fn run_pre_tool_use_json(stdin_json: &str) -> Output {
     let tmp_path = tmp.into_temp_path();
 
     let stdin_file = std::fs::File::open(tmp_path).expect("open temp file");
-    let binary = env!("CARGO_BIN_EXE_claude-hooks");
+    let binary = env!("CARGO_BIN_EXE_agent-hooks");
     Command::new(binary)
         .arg("pre-tool-use")
         .arg("--agent")

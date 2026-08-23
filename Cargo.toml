@@ -1,5 +1,5 @@
 [package]
-name = "claude-hooks"
+name = "agent-hooks"
 version = "0.1.0"
 edition = "2024"
 

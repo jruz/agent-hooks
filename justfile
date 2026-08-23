@@ -16,7 +16,7 @@ nvim *ARGS='.':
     sandbox nvim {{ARGS}}
 
 logs:
-    nvim ~/.local/state/claude-hooks/hooks.log
+    nvim ~/.local/state/agent-hooks/hooks.log
 
 watch:
     just rust-watch

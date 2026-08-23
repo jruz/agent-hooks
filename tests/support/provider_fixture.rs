@@ -28,7 +28,7 @@ pub fn run_hook_in_dir(
     let tmp_path = tmp.into_temp_path();
 
     let stdin_file = std::fs::File::open(tmp_path).expect("open temp file");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_claude-hooks"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_agent-hooks"));
     command
         .arg(subcommand)
         .arg("--agent")
@@ -55,7 +55,7 @@ pub fn run_hook_in_dir_no_agent(
     let tmp_path = tmp.into_temp_path();
 
     let stdin_file = std::fs::File::open(tmp_path).expect("open temp file");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_claude-hooks"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_agent-hooks"));
     command
         .arg(subcommand)
         .current_dir(current_dir)
