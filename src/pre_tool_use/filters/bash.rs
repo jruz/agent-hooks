@@ -1,5 +1,9 @@
 use regex::Regex;
 
+const SANDBOXED_EXECUTABLES: [&str; 9] = [
+    "cargo", "bun", "pnpm", "node", "python", "python3", "npm", "npx", "deno",
+];
+
 struct Rule {
     matches: fn(&str) -> bool,
     message: &'static str,
@@ -32,6 +36,69 @@ fn has_bare_dot_env(command: &str) -> bool {
         command.match_indices(".env").any(|(idx, _)| {
             let after_idx = idx + ".env".len();
             command.get(after_idx..after_idx + 1) != Some(".")
+        })
+    })
+}
+
+fn is_executable_name_character(character: char) -> bool {
+    character.is_alphanumeric() || matches!(character, '_' | '-')
+}
+
+fn is_executable_path_character(character: char) -> bool {
+    is_executable_name_character(character) || character == '/'
+}
+
+fn is_executable_name(command: &str, index: usize, executable: &str) -> bool {
+    let before = command
+        .get(..index)
+        .and_then(|prefix| prefix.chars().next_back());
+    let after_index = index + executable.len();
+    let after = command
+        .get(after_index..)
+        .and_then(|suffix| suffix.chars().next());
+
+    !before.is_some_and(is_executable_name_character)
+        && !after.is_some_and(is_executable_path_character)
+}
+
+fn is_path_character(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'.' | b'_' | b'-')
+}
+
+fn sandbox_precedes(command: &str, executable_index: usize) -> bool {
+    let bytes = command.as_bytes();
+    let mut cursor = executable_index;
+
+    if cursor > 0 && bytes.get(cursor - 1) == Some(&b'/') {
+        while cursor > 0
+            && bytes
+                .get(cursor - 1)
+                .is_some_and(|byte| is_path_character(*byte))
+        {
+            cursor -= 1;
+        }
+    }
+
+    if cursor > 0 && matches!(bytes.get(cursor - 1), Some(b'\'' | b'"')) {
+        cursor -= 1;
+    }
+
+    while cursor > 0 && bytes.get(cursor - 1).is_some_and(u8::is_ascii_whitespace) {
+        cursor -= 1;
+    }
+
+    let sandbox_end = cursor;
+    while cursor > 0 && bytes.get(cursor - 1).is_some_and(u8::is_ascii_alphabetic) {
+        cursor -= 1;
+    }
+
+    command.get(cursor..sandbox_end) == Some("sandbox")
+}
+
+fn has_unsandboxed_executable(command: &str) -> bool {
+    SANDBOXED_EXECUTABLES.iter().any(|executable| {
+        command.match_indices(executable).any(|(index, _)| {
+            is_executable_name(command, index, executable) && !sandbox_precedes(command, index)
         })
     })
 }
@@ -118,10 +185,7 @@ fn rules() -> Vec<Rule> {
             message: "Never include Co-Authored-By in commit messages",
         },
         Rule {
-            matches: |cmd| {
-                Regex::new(r"^(cargo|bun|pnpm|node|python3?|npm|npx|deno)\b")
-                    .is_ok_and(|re| re.is_match(cmd))
-            },
+            matches: has_unsandboxed_executable,
             message: "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available.",
         },
     ]

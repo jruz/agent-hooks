@@ -320,6 +320,54 @@ fn allows_sandbox_bun() {
 }
 
 #[test]
+fn blocks_npm_nested_in_nix_shell() {
+    let output = run_bash("nix-shell -p nodejs --run 'npm ci'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_cargo_nested_in_bash() {
+    let output = run_bash("bash -c 'cargo build'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_npm_after_command_separator() {
+    let output = run_bash("echo ready && npm ci");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_npm_after_env() {
+    let output = run_bash("env npm ci");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_absolute_npm_path() {
+    let output = run_bash("/usr/bin/npm ci");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandboxed_npm_nested_in_nix_shell() {
+    let output = run_bash("nix-shell --run 'sandbox npm ci'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_sandboxed_absolute_cargo_path() {
+    let output = run_bash("sandbox /usr/bin/cargo build");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_executable_inside_cargo_directory() {
+    let output = run_bash("/home/user/.cargo/bin/agent-hooks --version");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
 fn blocks_cat_etc_shadow() {
     let output = run_bash("cat /etc/shadow");
     assert_eq!(
