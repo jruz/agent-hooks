@@ -101,6 +101,9 @@ woodpecker-check:
 
 # ─────────────────────────────── release ───────────────────────────────
 
+release-bump VERSION:
+    nu scripts/release-bump.nu {{ VERSION }}
+
 release-build-linux:
     sandbox scripts/release-build.sh unknown-linux-gnu x86_64
     sandbox scripts/release-build.sh unknown-linux-gnu aarch64
