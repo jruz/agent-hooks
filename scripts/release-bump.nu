@@ -19,10 +19,10 @@ def cargo-set-version [version: string]: nothing -> nothing {
     }
 }
 
-def cargo-generate-lockfile []: nothing -> nothing {
-    let result = (^sandbox cargo generate-lockfile | complete)
+def cargo-update-lockfile []: nothing -> nothing {
+    let result = (^sandbox cargo check --all-targets | complete)
     if $result.exit_code != 0 {
-        fail "cargo generate-lockfile" $result.stderr
+        fail "cargo check" $result.stderr
     }
 }
 
@@ -49,7 +49,7 @@ def main [version: string]: nothing -> nothing {
     try {
         let current = (open Cargo.toml | get package.version)
         cargo-set-version $version
-        cargo-generate-lockfile
+        cargo-update-lockfile
         git-add-release-files
         git-commit-version $version
         print $"[(ansi green)OK(ansi reset)] Bumped ($current) -> ($version)"
