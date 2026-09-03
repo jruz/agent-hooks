@@ -29,7 +29,7 @@ fn should_skip(command: &str) -> bool {
 }
 
 fn extract_inline_title(command: &str) -> Option<String> {
-    let Ok(re) = Regex::new(r#"git commit\s+.*-m\s+"([^"]+)""#) else {
+    let Ok(re) = Regex::new(r#"git commit\s+.*?-m\s+"([^"]+)""#) else {
         return None;
     };
     let caps = re.captures(command)?;

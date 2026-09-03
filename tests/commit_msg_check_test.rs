@@ -52,6 +52,13 @@ fn allows_valid_bugs_commit() {
 }
 
 #[test]
+fn allows_valid_commit_with_body() {
+    let output =
+        run_bash(r#"git commit -m "[bugs] Fix: resolve crash" -m "Explain why the fix is needed""#);
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
 fn allows_valid_refa_commit() {
     let output = run_bash(r#"git commit -m "[refa] Config: update settings""#);
     assert!(blocked_reason(&output).is_none());
