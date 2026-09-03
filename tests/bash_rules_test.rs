@@ -284,6 +284,168 @@ fn blocks_bare_node() {
 }
 
 #[test]
+fn allows_node_in_commit_message() {
+    let output = run_bash(r#"git commit -m "[bugs] Node: improve lookup""#);
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_node_in_single_quoted_argument() {
+    let output = run_bash("echo 'node in text'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_node_as_an_argument() {
+    let output = run_bash("rg node src");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_node_in_comment() {
+    let output = run_bash("git status # node is not executed");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_node_in_command_substitution() {
+    let output = run_bash(r#"git commit -m "$(node message.js)""#);
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_in_backquoted_substitution() {
+    let output = run_bash("git commit -m \"`node message.js`\"");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_single_quoted_command_substitution_text() {
+    let output = run_bash("echo '$(node message.js)'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_node_in_process_substitution() {
+    let output = run_bash("diff <(node first.js) expected.txt");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_after_pipeline() {
+    let output = run_bash("echo input | node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_in_subshell() {
+    let output = run_bash("(node script.js)");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_in_function_body() {
+    let output = run_bash("run() { node script.js; }; run");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_dynamic_executable() {
+    let output = run_bash("runner=node; \"$runner\" script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_globbed_executable() {
+    let output = run_bash("./no* script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_brace_expanded_executable() {
+    let output = run_bash("no{de,thing} script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_eval() {
+    let output = run_bash("eval 'node script.js'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_safe_eval() {
+    let output = run_bash("eval 'git status'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_dynamic_eval() {
+    let output = run_bash("eval \"$command\"");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_env() {
+    let output = run_bash("env MODE=test node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_env_argv0() {
+    let output = run_bash("env -a fake node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_git_through_env_argv0() {
+    let output = run_bash("env -a fake git status");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_node_through_command() {
+    let output = run_bash("command node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_exec() {
+    let output = run_bash("exec node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_find_exec() {
+    let output = run_bash("find . -exec node script.js {} \\;");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandboxed_node_through_find_exec() {
+    let output = run_bash("find . -exec sandbox node script.js {} \\;");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_xargs_launcher() {
+    let output = run_bash("printf input | xargs node");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_absolute_node_path() {
+    let output = run_bash("/usr/bin/node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_malformed_shell_command() {
+    let output = run_bash("echo ready &&");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
 fn blocks_bare_python() {
     let output = run_bash("python script.py");
     assert!(blocked_reason(&output).is_some());
@@ -320,9 +482,105 @@ fn allows_sandbox_bun() {
 }
 
 #[test]
+fn allows_sandbox_node() {
+    let output = run_bash("sandbox node script.js");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_relative_sandbox_executable() {
+    let output = run_bash("./sandbox node script.js");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_substitution_before_sandbox_node() {
+    let output = run_bash(r#"sandbox node "$(node generate.js)""#);
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_zsh() {
+    let output = run_bash("zsh -c 'echo ready'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_bare_sh() {
+    let output = run_bash("sh -c 'node script.js'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandbox_zsh() {
+    let output = run_bash("sandbox zsh -c 'node script.js'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_bare_nu() {
+    let output = run_bash("nu -c '^node script.js'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandbox_nu() {
+    let output = run_bash("sandbox nu -c '^node script.js'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_node_through_env_split_string() {
+    let output = run_bash("env -S 'node script.js'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_attached_env_split_string() {
+    let output = run_bash("env --split-string='node script.js'");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn blocks_node_through_find_env() {
+    let output = run_bash("find . -exec env node script.js {} \\;");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_dynamic_find_path() {
+    let output = run_bash("find \"$directory\" -exec git status {} \\;");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_dynamic_env_assignment() {
+    let output = run_bash("env MODE=\"$mode\" git status");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_quoted_heredoc_node_text() {
+    let output = run_bash("cat <<'EOF'\nnode script.js\nEOF");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn blocks_node_substitution_in_expandable_heredoc() {
+    let output = run_bash("cat <<EOF\n$(node script.js)\nEOF");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
 fn blocks_npm_nested_in_nix_shell() {
     let output = run_bash("nix-shell -p nodejs --run 'npm ci'");
     assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_dynamic_nix_shell_package() {
+    let output = run_bash("nix-shell -p \"$package\" --run 'git status'");
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
