@@ -45,10 +45,6 @@ fn rules() -> Vec<Rule> {
             message: "Use `just install` instead",
         },
         Rule {
-            matches: |cmd| cmd.contains("git -C"),
-            message: "Use relative paths instead of `git -C`",
-        },
-        Rule {
             matches: |cmd| cmd.contains("npm run"),
             message: "Use `just <task>` instead of `npm run`",
         },

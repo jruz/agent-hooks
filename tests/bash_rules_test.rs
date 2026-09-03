@@ -37,12 +37,9 @@ fn blocks_cargo_install_registry() {
 }
 
 #[test]
-fn blocks_git_c() {
+fn allows_git_c() {
     let output = run_bash("git -C /some/path status");
-    assert_eq!(
-        blocked_reason(&output).expect("should block"),
-        "Use relative paths instead of `git -C`"
-    );
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
