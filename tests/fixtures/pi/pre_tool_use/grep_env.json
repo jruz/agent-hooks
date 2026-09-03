@@ -1,0 +1,9 @@
+{
+  "toolName": "grep",
+  "toolCallId": "call-126",
+  "input": {
+    "pattern": "TOKEN",
+    "path": "/tmp/project/.env",
+    "include": "*.json"
+  }
+}

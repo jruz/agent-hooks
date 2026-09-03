@@ -1,0 +1,9 @@
+{
+  "toolName": "read",
+  "toolCallId": "call-124",
+  "input": {
+    "path": "/tmp/project/.env",
+    "offset": 1,
+    "limit": 10
+  }
+}

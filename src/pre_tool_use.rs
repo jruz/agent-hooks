@@ -1,6 +1,7 @@
 mod claude;
 mod codex;
 mod filters;
+mod pi;
 
 use std::collections::HashMap;
 use std::io::{self, Read as _};
@@ -51,6 +52,7 @@ fn run_agent(agent: Agent, stdin: &str) -> Result<Option<String>, String> {
     match agent {
         Agent::Claude => map_claude_error(stdin),
         Agent::Codex => map_codex_error(stdin),
+        Agent::Pi => map_pi_error(stdin),
     }
 }
 
@@ -62,6 +64,16 @@ fn map_claude_error(stdin: &str) -> Result<Option<String>, String> {
 fn map_codex_error(stdin: &str) -> Result<Option<String>, String> {
     let output = codex::run(stdin).map_err(|err| err.to_string())?;
     Ok(output)
+}
+
+fn map_pi_error(stdin: &str) -> Result<Option<String>, String> {
+    match pi::run(stdin) {
+        Ok(output) => Ok(output),
+        Err(err) => {
+            let reason = err.to_string();
+            Err(reason)
+        }
+    }
 }
 
 fn io_error(agent: Agent, err: &io::Error) -> PreToolUseError {

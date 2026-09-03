@@ -1,0 +1,7 @@
+{
+  "toolName": "bash",
+  "toolCallId": "call-125",
+  "input": {
+    "command": "git status"
+  }
+}

@@ -22,6 +22,12 @@ struct PreToolUseHookSpecificOutput {
     permission_decision_reason: String,
 }
 
+#[derive(Serialize)]
+struct PiBlockResponse {
+    block: bool,
+    reason: String,
+}
+
 pub fn stop_block(reason: String) -> Result<String, serde_json::Error> {
     let response = BlockResponse {
         decision: "block",
@@ -35,6 +41,18 @@ pub fn pre_tool_use_claude_block(reason: String) -> Result<String, serde_json::E
 }
 
 pub fn pre_tool_use_codex_block(reason: String) -> Result<String, serde_json::Error> {
+    pre_tool_use_deny(reason)
+}
+
+pub fn pre_tool_use_pi_block(reason: String) -> Result<String, serde_json::Error> {
+    let response = PiBlockResponse {
+        block: true,
+        reason,
+    };
+    serde_json::to_string(&response)
+}
+
+fn pre_tool_use_deny(reason: String) -> Result<String, serde_json::Error> {
     let response = PreToolUseDenyResponse {
         hook_specific_output: PreToolUseHookSpecificOutput {
             hook_event_name: "PreToolUse",

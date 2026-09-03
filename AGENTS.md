@@ -1,6 +1,6 @@
 # agent-hooks
 
-Rust CLI that runs Claude Code and Codex hooks. `pre-tool-use` is agent-specific; `stop` is shared.
+Rust CLI that runs Claude Code, Codex, and Pi hooks. `pre-tool-use` is agent-specific; `stop` is shared.
 
 ## Usage
 
@@ -8,9 +8,10 @@ Rust CLI that runs Claude Code and Codex hooks. `pre-tool-use` is agent-specific
 agent-hooks pre-tool-use --agent claude # Claude PreToolUse hook (reads stdin)
 agent-hooks stop                        # Shared Stop hook
 agent-hooks pre-tool-use --agent codex  # Codex PreToolUse hook (reads stdin)
+agent-hooks pre-tool-use --agent pi     # Pi PreToolUse hook (reads stdin)
 ```
 
-Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `agent-hooks stop` for both Claude and Codex.
+Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `agent-hooks stop` for Claude, Codex, and Pi.
 
 ## Hook Files
 
@@ -18,6 +19,7 @@ Configure each agent's hook settings to pass the matching `--agent` value for `p
 - `~/.codex/hooks.json`
 - `~/.codex/hooks/Stop`
 - `~/.codex/hooks/UserPromptSubmit`
+- `~/.pi/agent/settings.json`
 
 ## Tooling
 
@@ -44,6 +46,7 @@ src/
   pre_tool_use/
     claude.rs            # Claude-specific payload parsing and response rendering
     codex.rs             # Codex-specific payload parsing and response rendering
+    pi.rs                # Pi-specific payload parsing and response rendering
     filters.rs           # shared PreToolUse filter exports
     filters/
       bash.rs            # block banned bash command patterns
@@ -82,6 +85,9 @@ Claude Code hooks communicate via JSON on stdout:
 
 Codex `pre-tool-use` deny responses use `hookSpecificOutput.permissionDecision = "deny"`.
 Codex `pre-tool-use` currently only handles `Bash` events.
+
+Pi `pre-tool-use` accepts Pi's native `toolName` and `input` fields. Blocked
+responses use `{ "block": true, "reason": "..." }`.
 
 ## Logging
 
