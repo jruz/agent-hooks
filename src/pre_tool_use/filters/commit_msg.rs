@@ -29,16 +29,17 @@ fn should_skip(command: &str) -> bool {
 }
 
 fn extract_inline_title(command: &str) -> Option<String> {
-    let Ok(re) = Regex::new(r#"git commit\s+.*?-m\s+"([^"]+)""#) else {
-        return None;
-    };
-    let caps = re.captures(command)?;
-    let first_line = caps[1].lines().next()?.trim();
-    if first_line.is_empty() {
-        return None;
-    }
-    let title = first_line.to_string();
-    Some(title)
+    let patterns = [
+        r#"git commit\s+.*?-m\s+"([^"]+)""#,
+        r"git commit\s+.*?-m\s+'([^']+)'",
+    ];
+
+    patterns.iter().find_map(|pattern| {
+        let re = Regex::new(pattern).ok()?;
+        let caps = re.captures(command)?;
+        let first_line = caps.get(1)?.as_str().lines().next()?.trim();
+        (!first_line.is_empty()).then(|| first_line.to_string())
+    })
 }
 
 fn extract_title(command: &str) -> Option<String> {

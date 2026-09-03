@@ -77,6 +77,12 @@ fn allows_valid_tool_commit() {
 }
 
 #[test]
+fn allows_valid_single_quoted_commit() {
+    let output = run_bash("git commit --only -m '[tool] Home: Add Pi coding agent'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
 fn blocks_unknown_tag() {
     let output = run_bash(r#"git commit -m "[chore] Area: description""#);
     assert!(blocked_reason(&output).is_some());
