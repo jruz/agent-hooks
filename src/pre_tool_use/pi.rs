@@ -59,13 +59,17 @@ fn run_bash(input: Value) -> Result<Option<String>, Error> {
 
 fn run_read(input: Value) -> Result<Option<String>, Error> {
     let read: ReadInput = serde_json::from_value(input).map_err(Error::Json)?;
-    build_response(filters::secrets::run(&read.path))
+    let result = filters::secrets::run(&read.path);
+    build_response(result)
 }
 
 fn run_grep(input: Value) -> Result<Option<String>, Error> {
     let grep: GrepInput = serde_json::from_value(input).map_err(Error::Json)?;
     match grep.path {
-        Some(path) => build_response(filters::secrets::run(&path)),
+        Some(path) => {
+            let result = filters::secrets::run(&path);
+            build_response(result)
+        }
         None => Ok(None),
     }
 }
