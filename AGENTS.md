@@ -49,9 +49,15 @@ src/
     pi.rs                # Pi-specific payload parsing and response rendering
     filters.rs           # shared PreToolUse filter exports
     filters/
-      bash.rs            # block banned bash command patterns
-      commit_msg.rs      # validate commit title format
+      bash.rs            # shared shell policy orchestrator
+      bash/
+        curl.rs          # inspect curl file inputs and outputs
+        paths.rs         # inspect command file operands and redirects
+        rules.rs         # executable, flag, and assignment policies
+        sandboxed_executable.rs # enforce local sandbox requirements
+      commit_msg.rs      # validate parsed git commit messages
       secrets.rs         # block Read/Grep on .env/.ssh files
+      shell.rs           # shared shell parser, visitor, and execution context
   stop.rs                # Stop hook orchestrator
   stop/
     slop_detector.rs     # run slop-detector binary
@@ -71,6 +77,9 @@ src/
 - one file per hook action, named after the tool it wraps
 - hook modules return raw data, orchestrators handle blocking logic
 - provider-specific wire parsing stays at the event edge; shared modules hold policy and stop action logic
+- all Bash providers use one shell visitor; policies inspect parsed invocations, assignments, and redirects rather than raw command strings
+- sandbox exemptions apply only to sandbox requirements, not command or file restrictions
+- SSH and Docker commands retain remote/container execution context; local sandbox requirements are not imposed on their executables
 - `shared/response` builds the JSON hook callers expect
 - `main.rs` owns all printing (stdout/stderr) and error logging to file
 - each module has its own thiserror enum

@@ -52,8 +52,7 @@ fn parse_input(stdin: &str) -> Result<ToolCall, Error> {
 
 fn run_bash(input: Value) -> Result<Option<String>, Error> {
     let bash: BashInput = serde_json::from_value(input).map_err(Error::Json)?;
-    let result =
-        filters::bash::run(&bash.command).and_then(|()| filters::commit_msg::run(&bash.command));
+    let result = filters::bash::run(&bash.command);
     build_response(result)
 }
 

@@ -49,8 +49,7 @@ pub fn run(stdin: &str) -> Result<Option<String>, ClaudeError> {
     let input: HookInput = serde_json::from_str(stdin).map_err(ClaudeError::Json)?;
     match input {
         HookInput::Bash { tool_input: bash } => {
-            let bash_result = filters::bash::run(&bash.command);
-            let result = bash_result.and_then(|()| filters::commit_msg::run(&bash.command));
+            let result = filters::bash::run(&bash.command);
             build_response(result)
         }
         HookInput::Grep { tool_input: grep } => {

@@ -32,9 +32,7 @@ pub fn run(stdin: &str) -> Result<Option<String>, CodexError> {
     let input: HookInput = serde_json::from_str(stdin).map_err(CodexError::Json)?;
     match input {
         HookInput::Bash { tool_input: bash } => {
-            let bash_result = filters::bash::run(&bash.command);
-            let secrets_result = bash_result.and_then(|()| filters::secrets::run(&bash.command));
-            let result = secrets_result.and_then(|()| filters::commit_msg::run(&bash.command));
+            let result = filters::bash::run(&bash.command);
             build_response(result)
         }
         HookInput::Unsupported => Ok(None),
