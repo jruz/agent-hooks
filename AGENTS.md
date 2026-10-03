@@ -52,11 +52,12 @@ src/
       bash.rs            # shared shell policy orchestrator
       bash/
         curl.rs          # inspect curl file inputs and outputs
+        environment.rs   # block environment output and shell tracing
         paths.rs         # inspect command file operands and redirects
         rules.rs         # executable, flag, and assignment policies
         sandboxed_executable.rs # enforce local sandbox requirements
       commit_msg.rs      # validate parsed git commit messages
-      secrets.rs         # block Read/Grep on .env/.ssh files
+      secrets.rs         # shared sensitive-file policy and read exceptions
       shell.rs           # shared shell parser, visitor, and execution context
   stop.rs                # Stop hook orchestrator
   stop/

@@ -1,4 +1,5 @@
 mod curl;
+mod environment;
 mod paths;
 mod rules;
 mod sandboxed_executable;
@@ -14,6 +15,8 @@ pub enum Error {
     #[error(transparent)]
     Curl(#[from] curl::Error),
     #[error(transparent)]
+    Environment(#[from] environment::Error),
+    #[error(transparent)]
     Paths(#[from] paths::Error),
     #[error(transparent)]
     Rules(#[from] rules::Error),
@@ -27,6 +30,7 @@ pub fn run(command: &str) -> Result<(), String> {
     let visitor = shell::Visitor {
         assignment: check_assignment,
         invocation: check_invocation,
+        output: check_output,
         path: check_redirect,
     };
     match shell::run(command, &visitor) {
@@ -50,6 +54,11 @@ fn policy_reason<Failure: std::fmt::Display>(result: Result<(), Failure>) -> Res
 
 fn check_assignment(assignment: &ast::Assignment) -> Result<(), String> {
     let result = rules::check_assignment(assignment);
+    policy_reason(result)
+}
+
+fn check_output(output: shell::Output<'_>) -> Result<(), String> {
+    let result = environment::check_output(output);
     policy_reason(result)
 }
 
@@ -86,6 +95,7 @@ fn check_command(
         .collect::<Result<Vec<_>, _>>()?;
     rules::run(name, &literals, execution)?;
     rules::check_bindings(name, arguments)?;
+    environment::run(name, arguments)?;
     paths::run(name, arguments)?;
     if name == "curl" {
         curl::run(arguments)?;

@@ -83,15 +83,21 @@ fn allows_read_unrelated_docker_files() {
 }
 
 #[test]
-fn allows_read_envrc() {
+fn blocks_read_envrc() {
     let output = run_file("Read", ".envrc");
-    assert!(blocked_reason(&output).is_none());
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to sensitive file blocked"
+    );
 }
 
 #[test]
-fn allows_read_envrc_in_path() {
+fn blocks_read_envrc_in_path() {
     let output = run_file("Read", "/home/user/project/.envrc");
-    assert!(blocked_reason(&output).is_none());
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to sensitive file blocked"
+    );
 }
 
 #[test]

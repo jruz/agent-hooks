@@ -1,19 +1,13 @@
-use std::path::{Component, Path};
-
 use brush_parser::ast;
 
 use super::super::{secrets, shell};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Never access .env files directly")]
-    Env,
-    #[error("Access to sensitive file blocked")]
-    Sensitive,
+    #[error(transparent)]
+    Secrets(#[from] secrets::Error),
     #[error(transparent)]
     Shell(#[from] shell::Error),
-    #[error("Access to system secret file blocked")]
-    System,
 }
 
 pub fn run(executable: &str, arguments: &[&ast::Word]) -> Result<(), Error> {
@@ -33,7 +27,6 @@ fn check_git_files(arguments: &[&ast::Word]) -> Result<(), Error> {
         Some((word, remaining)) => {
             let subcommand = shell::static_word(word)?;
             match subcommand.as_deref() {
-                Some("add") => Ok(()),
                 Some("commit") => check_message_file(remaining),
                 Some(_) | None => remaining.iter().try_for_each(|path| check_word(path)),
             }
@@ -167,38 +160,8 @@ pub fn check_word(word: &ast::Word) -> Result<(), Error> {
 }
 
 pub fn check_path(value: &str) -> Result<(), Error> {
-    if value.contains("://") {
-        Ok(())
-    } else {
-        check_file_path(value)
+    if !value.contains("://") {
+        secrets::check_path(value)?;
     }
-}
-
-fn check_file_path(value: &str) -> Result<(), Error> {
-    let path = Path::new(value);
-    let components = path.components().collect::<Vec<_>>();
-    let env = components
-        .iter()
-        .any(|component| matches!(component, Component::Normal(name) if *name == ".env"));
-    let ssh = components
-        .iter()
-        .any(|component| matches!(component, Component::Normal(name) if *name == ".ssh"));
-    let system_secret = [
-        "/etc/shadow",
-        "/etc/passwd",
-        "/etc/gshadow",
-        "/etc/sudoers",
-        "/etc/master.passwd",
-    ]
-    .iter()
-    .any(|secret| path.starts_with(secret));
-    if env {
-        Err(Error::Env)
-    } else if system_secret {
-        Err(Error::System)
-    } else if secrets::is_docker_path(value) || ssh && !value.ends_with(".ssh/config") {
-        Err(Error::Sensitive)
-    } else {
-        Ok(())
-    }
+    Ok(())
 }

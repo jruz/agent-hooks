@@ -157,21 +157,30 @@ fn blocks_env_in_path() {
 }
 
 #[test]
-fn allows_cat_envrc() {
+fn blocks_cat_envrc() {
     let output = run_bash("cat .envrc");
-    assert!(blocked_reason(&output).is_none());
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Never access .env files directly"
+    );
 }
 
 #[test]
-fn allows_env_example() {
+fn blocks_env_example() {
     let output = run_bash("cat .env.example");
-    assert!(blocked_reason(&output).is_none());
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Never access .env files directly"
+    );
 }
 
 #[test]
-fn allows_git_add_env() {
+fn blocks_git_add_env() {
     let output = run_bash("git add .env");
-    assert!(blocked_reason(&output).is_none());
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Never access .env files directly"
+    );
 }
 
 #[test]

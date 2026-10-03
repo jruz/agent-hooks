@@ -8,6 +8,7 @@ pub type InvocationCheck = fn(&str, &[&ast::Word], Sandbox, Execution) -> Result
 pub struct Visitor {
     pub assignment: fn(&ast::Assignment) -> Result<(), String>,
     pub invocation: InvocationCheck,
+    pub output: fn(Output<'_>) -> Result<(), String>,
     pub path: fn(&ast::Word) -> Result<(), String>,
 }
 
@@ -23,6 +24,12 @@ pub enum Execution {
     Container,
     Local,
     Remote,
+}
+
+#[derive(Clone, Copy)]
+pub enum Output<'pieces> {
+    Environment,
+    Expansion(&'pieces [word::WordPieceWithSource]),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -489,7 +496,7 @@ fn check_source(context: &Context, source: &str) -> Result<(), Error> {
 fn check_env(context: &Context, arguments: &[&ast::Word]) -> Result<(), Error> {
     match arguments.split_first() {
         Some((word, remaining)) => check_env_argument(context, word, remaining),
-        None => Ok(()),
+        None => check_output(context, Output::Environment),
     }
 }
 
@@ -500,12 +507,16 @@ fn check_env_argument(
 ) -> Result<(), Error> {
     let literal = static_word(word)?;
     match literal.as_deref() {
-        Some("-S" | "--split-string") => check_source_argument(context, remaining),
+        Some("-v" | "--debug") => check_output(context, Output::Environment),
+        Some("--help" | "--version") => Ok(()),
+        Some("-S" | "--split-string") => check_env_source_argument(context, remaining),
         Some(argument) if argument.starts_with("--split-string=") => {
-            check_prefixed_source(context, argument, "--split-string=")
+            let source = argument.trim_start_matches("--split-string=");
+            check_env_source(context, source, remaining)
         }
         Some(argument) if argument.starts_with("-S") => {
-            check_prefixed_source(context, argument, "-S")
+            let source = argument.trim_start_matches("-S");
+            check_env_source(context, source, remaining)
         }
         Some("-a" | "--argv0" | "-u" | "--unset" | "-C" | "--chdir") => {
             check_env_after_option(context, remaining)
@@ -522,11 +533,32 @@ fn check_env_argument(
 fn check_env_after_option(context: &Context, arguments: &[&ast::Word]) -> Result<(), Error> {
     match arguments.split_first() {
         Some((_, remaining)) => check_env(context, remaining),
-        None => Ok(()),
+        None => check_output(context, Output::Environment),
     }
 }
 
-fn is_env_assignment(word: &ast::Word) -> bool {
+fn check_env_source_argument(context: &Context, arguments: &[&ast::Word]) -> Result<(), Error> {
+    match arguments.split_first() {
+        Some((word, remaining)) => {
+            let source = literal_word(word)?;
+            check_env_source(context, &source, remaining)
+        }
+        None => check_output(context, Output::Environment),
+    }
+}
+
+fn check_env_source(
+    context: &Context,
+    source: &str,
+    arguments: &[&ast::Word],
+) -> Result<(), Error> {
+    let prefix = ["env", source].into_iter();
+    let words = arguments.iter().map(|word| word.value.as_str());
+    let command = prefix.chain(words).collect::<Vec<_>>().join(" ");
+    check_source(context, &command)
+}
+
+pub fn is_env_assignment(word: &ast::Word) -> bool {
     let Some((name, _)) = word.value.split_once('=') else {
         return false;
     };
@@ -867,12 +899,31 @@ fn check_redirect(context: &Context, redirect: &ast::IoRedirect) -> Result<(), E
                     return Err(error);
                 }
             };
-            check_word_pieces(context, &pieces)
+            check_output_pieces(context, &pieces)
         }
         ast::IoRedirect::HereDocument(_, _) => Ok(()),
-        ast::IoRedirect::HereString(_, word) => check_word(context, word),
+        ast::IoRedirect::HereString(_, word) => check_output_word(context, word),
         ast::IoRedirect::OutputAndError(word, _) => check_path(context, word),
     }
+}
+
+fn check_output_word(context: &Context, word: &ast::Word) -> Result<(), Error> {
+    let pieces = parse_word(&word.value)?;
+    check_output_pieces(context, &pieces)
+}
+
+fn check_output_pieces(
+    context: &Context,
+    pieces: &[word::WordPieceWithSource],
+) -> Result<(), Error> {
+    check_word_pieces(context, pieces)?;
+    let output = Output::Expansion(pieces);
+    check_output(context, output)
+}
+
+fn check_output(context: &Context, output: Output<'_>) -> Result<(), Error> {
+    let result = (context.visitor.output)(output);
+    policy_result(result)
 }
 
 fn check_redirect_target(
