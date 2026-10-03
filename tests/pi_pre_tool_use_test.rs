@@ -40,6 +40,26 @@ fn blocks_pi_grep_env_path() {
 }
 
 #[test]
+fn blocks_pi_read_docker_credentials() {
+    let output = run_fixture("pi", "pi/pre_tool_use/read_docker_config.json");
+
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to sensitive file blocked"
+    );
+}
+
+#[test]
+fn blocks_pi_grep_docker_directory() {
+    let output = run_fixture("pi", "pi/pre_tool_use/grep_docker_directory.json");
+
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to sensitive file blocked"
+    );
+}
+
+#[test]
 fn allows_safe_pi_bash() {
     let output = run_fixture("pi", "pi/pre_tool_use/git_status.json");
 

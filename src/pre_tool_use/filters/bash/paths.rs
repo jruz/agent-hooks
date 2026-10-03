@@ -2,7 +2,7 @@ use std::path::{Component, Path};
 
 use brush_parser::ast;
 
-use super::super::shell;
+use super::super::{secrets, shell};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -196,7 +196,7 @@ fn check_file_path(value: &str) -> Result<(), Error> {
         Err(Error::Env)
     } else if system_secret {
         Err(Error::System)
-    } else if ssh && !value.ends_with(".ssh/config") {
+    } else if secrets::is_docker_path(value) || ssh && !value.ends_with(".ssh/config") {
         Err(Error::Sensitive)
     } else {
         Ok(())

@@ -1,3 +1,5 @@
+use std::path;
+
 use regex::Regex;
 
 const SYSTEM_SECRETS: &[&str] = &[
@@ -9,10 +11,11 @@ const SYSTEM_SECRETS: &[&str] = &[
 ];
 
 pub fn run(file_path: &str) -> Result<(), String> {
+    let docker = is_docker_path(file_path);
     let allowlisted =
-        is_envrc(file_path) || is_encrypted_env(file_path) || is_ssh_config(file_path);
+        !docker && (is_envrc(file_path) || is_encrypted_env(file_path) || is_ssh_config(file_path));
     let system_secret = is_system_secret(file_path);
-    let sensitive = is_sensitive(file_path);
+    let sensitive = docker || is_sensitive(file_path);
 
     if allowlisted {
         Ok(())
@@ -25,6 +28,12 @@ pub fn run(file_path: &str) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+pub fn is_docker_path(value: &str) -> bool {
+    path::Path::new(value)
+        .components()
+        .any(|component| matches!(component, path::Component::Normal(name) if name == ".docker"))
 }
 
 fn is_envrc(path: &str) -> bool {

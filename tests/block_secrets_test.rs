@@ -40,6 +40,49 @@ fn blocks_read_ssh_key() {
 }
 
 #[test]
+fn blocks_read_docker_credentials() {
+    for path in [
+        ".docker/config.json",
+        "~/.docker/config.json",
+        "/home/user/.docker/config.json",
+        "/home/user/.docker/config.json.bak",
+    ] {
+        let output = run_file("Read", path);
+        assert_eq!(
+            blocked_reason(&output).expect("should block"),
+            "Access to sensitive file blocked",
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn blocks_grep_docker_credentials_and_directory() {
+    for path in ["/home/user/.docker/config.json", "/home/user/.docker"] {
+        let mut input = HashMap::new();
+        let path_value = path.to_string();
+        let value = Value::String(path_value);
+        let key = "path".to_string();
+        input.insert(key, value);
+        let grep_payload = payload("Grep", input);
+        let output = run_pre_tool_use(&grep_payload);
+        assert_eq!(
+            blocked_reason(&output).expect("should block"),
+            "Access to sensitive file blocked",
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn allows_read_unrelated_docker_files() {
+    for path in [".dockerignore", "docs/docker/config.json", "config.json"] {
+        let output = run_file("Read", path);
+        assert!(blocked_reason(&output).is_none(), "{path}");
+    }
+}
+
+#[test]
 fn allows_read_envrc() {
     let output = run_file("Read", ".envrc");
     assert!(blocked_reason(&output).is_none());
