@@ -8,6 +8,23 @@ const SYSTEM_SECRETS: &[&str] = &[
     "/etc/master.passwd",
 ];
 
+const HISTORY_FILES: &[&str] = &[
+    ".bash_history",
+    ".zsh_history",
+    ".histfile",
+    ".python_history",
+    ".node_repl_history",
+    ".psql_history",
+    ".mysql_history",
+    ".sqlite_history",
+];
+
+const HISTORY_PATHS: &[&str] = &[
+    "nushell/history.txt",
+    "nushell/history.sqlite3",
+    "fish/fish_history",
+];
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Never access .env files directly")]
@@ -37,7 +54,7 @@ pub fn check_path(value: &str) -> Result<(), Error> {
     if is_system_secret(&normalized) {
         return Err(Error::System);
     }
-    if has_directory(file, ".docker") || is_process_environment(file) {
+    if has_directory(file, ".docker") || is_process_environment(file) || is_shell_history(file) {
         return Err(Error::Sensitive);
     }
     let traversal = file
@@ -82,6 +99,18 @@ fn is_ssh_exception(file: &path::Path) -> bool {
 fn is_system_secret(file: &path::Path) -> bool {
     file.to_str()
         .is_some_and(|value| SYSTEM_SECRETS.iter().any(|secret| value.contains(secret)))
+}
+
+fn is_shell_history(file: &path::Path) -> bool {
+    let history_file = file
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| HISTORY_FILES.contains(&name));
+    let history_path = HISTORY_PATHS.iter().any(|suffix| file.ends_with(suffix));
+    let atuin_data = file
+        .ancestors()
+        .any(|ancestor| ancestor.ends_with("share/atuin"));
+    history_file || history_path || atuin_data
 }
 
 fn is_process_environment(file: &path::Path) -> bool {

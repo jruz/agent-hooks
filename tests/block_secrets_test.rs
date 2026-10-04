@@ -83,6 +83,51 @@ fn allows_read_unrelated_docker_files() {
 }
 
 #[test]
+fn blocks_read_shell_history() {
+    for path in [
+        "/home/user/.bash_history",
+        "~/.zsh_history",
+        "/home/user/.config/nushell/history.txt",
+        "/home/user/.config/nushell/history.sqlite3",
+        "/home/user/.local/share/fish/fish_history",
+        "/home/user/.local/share/atuin/history.db",
+        "/home/user/.local/share/atuin/history.db-shm",
+        "/home/user/.local/share/atuin/history.db-wal",
+        "/home/user/.python_history",
+    ] {
+        let output = run_file("Read", path);
+        assert_eq!(
+            blocked_reason(&output).expect("should block"),
+            "Access to sensitive file blocked",
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn blocks_grep_atuin_directory() {
+    let output = run_file("Grep", "/home/user/.local/share/atuin");
+    assert_eq!(
+        blocked_reason(&output).expect("should block"),
+        "Access to sensitive file blocked"
+    );
+}
+
+#[test]
+fn allows_read_unrelated_history_files() {
+    for path in [
+        "src/history.rs",
+        "docs/history.txt",
+        "nushell/config.nu",
+        "/home/user/.config/atuin/config.toml",
+        "/home/user/dev/atuin/src/main.rs",
+    ] {
+        let output = run_file("Read", path);
+        assert!(blocked_reason(&output).is_none(), "{path}");
+    }
+}
+
+#[test]
 fn blocks_read_envrc() {
     let output = run_file("Read", ".envrc");
     assert_eq!(
