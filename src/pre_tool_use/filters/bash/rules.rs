@@ -36,6 +36,10 @@ pub fn run(
         }
         "gleam" if first == Some("run") => Some("Use just run instead"),
         "security" => Some("Access to macOS security command blocked"),
+        "history" | "fc" => Some("Access to shell history blocked"),
+        "atuin" if matches!(first, Some("search" | "history" | "stats" | "key")) => {
+            Some("Access to shell history blocked")
+        }
         "git" if first == Some("filter-branch") && has_argument(arguments, "--all") => Some(
             "Never use --all with git filter-branch \u{2014} it overwrites backup branches. Target specific branches instead.",
         ),

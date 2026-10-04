@@ -697,3 +697,53 @@ fn allows_git_commit_without_co_authored_by() {
     let output = run_bash(r#"git commit -m "[feat] Auth: add login""#);
     assert!(blocked_reason(&output).is_none());
 }
+
+#[test]
+fn blocks_shell_history_commands() {
+    for command in [
+        "history",
+        "fc -l",
+        "atuin search foo",
+        "atuin history list",
+        "atuin stats",
+        "atuin key",
+        "history | tail",
+    ] {
+        let output = run_bash(command);
+        assert_eq!(
+            blocked_reason(&output).expect("should block"),
+            "Access to shell history blocked",
+            "{command}"
+        );
+    }
+}
+
+#[test]
+fn allows_atuin_maintenance_commands() {
+    for command in [
+        "atuin --version",
+        "atuin sync",
+        "atuin doctor",
+        "cat ~/.config/atuin/config.toml",
+    ] {
+        let output = run_bash(command);
+        assert!(blocked_reason(&output).is_none(), "{command}");
+    }
+}
+
+#[test]
+fn blocks_shell_history_file_operands() {
+    for command in [
+        "cat ~/.zsh_history",
+        "tail /home/user/.bash_history",
+        "rg token ~/.config/nushell/history.txt",
+        "sqlite3 ~/.local/share/atuin/history.db",
+    ] {
+        let output = run_bash(command);
+        assert_eq!(
+            blocked_reason(&output).expect("should block"),
+            "Access to sensitive file blocked",
+            "{command}"
+        );
+    }
+}
