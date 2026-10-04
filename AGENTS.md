@@ -79,6 +79,7 @@ src/
 - hook modules return raw data, orchestrators handle blocking logic
 - provider-specific wire parsing stays at the event edge; shared modules hold policy and stop action logic
 - all Bash providers use one shell visitor; policies inspect parsed invocations, assignments, and redirects rather than raw command strings
+- local sandbox requirements target dependency-executing runtimes and package/build tools, not shells or generic launchers
 - sandbox exemptions apply only to sandbox requirements, not command or file restrictions
 - SSH and Docker commands retain remote/container execution context; local sandbox requirements are not imposed on their executables
 - `shared/response` builds the JSON hook callers expect

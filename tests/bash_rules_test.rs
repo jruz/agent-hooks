@@ -199,8 +199,14 @@ fn blocks_gleam_run() {
 }
 
 #[test]
-fn allows_gleam_build() {
+fn blocks_bare_gleam_build() {
     let output = run_bash("gleam build");
+    assert!(blocked_reason(&output).is_some());
+}
+
+#[test]
+fn allows_sandbox_gleam_build() {
+    let output = run_bash("sandbox gleam build");
     assert!(blocked_reason(&output).is_none());
 }
 
@@ -434,9 +440,9 @@ fn allows_sandboxed_node_through_find_exec() {
 }
 
 #[test]
-fn blocks_xargs_launcher() {
-    let output = run_bash("printf input | xargs node");
-    assert!(blocked_reason(&output).is_some());
+fn allows_xargs_launcher() {
+    let output = run_bash("printf input | xargs rg");
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
@@ -506,13 +512,13 @@ fn blocks_substitution_before_sandbox_node() {
 }
 
 #[test]
-fn blocks_bare_zsh() {
+fn allows_bare_zsh() {
     let output = run_bash("zsh -c 'echo ready'");
-    assert!(blocked_reason(&output).is_some());
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
-fn blocks_bare_sh() {
+fn blocks_node_nested_in_sh() {
     let output = run_bash("sh -c 'node script.js'");
     assert!(blocked_reason(&output).is_some());
 }
@@ -524,9 +530,17 @@ fn allows_sandbox_zsh() {
 }
 
 #[test]
-fn blocks_bare_nu() {
-    let output = run_bash("nu -c '^node script.js'");
-    assert!(blocked_reason(&output).is_some());
+fn allows_bare_nu() {
+    let output = run_bash("nu -c '^git status'");
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_nu_recipe_syntax_check() {
+    let output = run_bash(
+        "nu --commands '^just --show apple-sync-logs-clear | lines | skip 2 | str join (char newline) | nu-check --debug'",
+    );
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
