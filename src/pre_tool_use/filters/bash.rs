@@ -42,7 +42,10 @@ pub fn run(command: &str) -> Result<(), String> {
     }
 }
 
-fn policy_reason<Failure: std::fmt::Display>(result: Result<(), Failure>) -> Result<(), String> {
+fn policy_reason<Failure>(result: Result<(), Failure>) -> Result<(), String>
+where
+    Failure: std::fmt::Display,
+{
     match result {
         Ok(()) => Ok(()),
         Err(error) => {

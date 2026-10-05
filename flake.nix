@@ -2,7 +2,7 @@
   description = "Rust CLI that runs Claude Code hooks";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
