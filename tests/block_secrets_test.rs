@@ -128,21 +128,15 @@ fn allows_read_unrelated_history_files() {
 }
 
 #[test]
-fn blocks_read_envrc() {
+fn allows_read_envrc() {
     let output = run_file("Read", ".envrc");
-    assert_eq!(
-        blocked_reason(&output).expect("should block"),
-        "Access to sensitive file blocked"
-    );
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]
-fn blocks_read_envrc_in_path() {
+fn allows_read_envrc_in_path() {
     let output = run_file("Read", "/home/user/project/.envrc");
-    assert_eq!(
-        blocked_reason(&output).expect("should block"),
-        "Access to sensitive file blocked"
-    );
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]

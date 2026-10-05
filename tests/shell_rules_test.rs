@@ -268,7 +268,6 @@ fn blocks_all_plaintext_env_shell_variants() {
             "cat .env.local",
             "cat .env.production",
             "cat .env.example",
-            "cat .envrc",
             "cat .environment",
             "cat \"$HOME/.env.local\"",
             "cat .env.pub",
@@ -297,6 +296,7 @@ fn allows_file_exceptions_in_shell_operands() {
     assert_allowed(&[
         "cat .env.production.yaml",
         "cat .env.production.eu.yaml",
+        "cat .envrc",
         "cat ~/.ssh/config",
         "cat ~/.ssh/id_ed25519.pub",
         "cat ~/.ssh/*.pub",

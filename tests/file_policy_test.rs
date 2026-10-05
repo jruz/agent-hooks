@@ -61,7 +61,6 @@ fn blocks_plaintext_env_variants_for_file_tools() {
             ".env.local",
             ".env.production",
             ".env.example",
-            ".envrc",
             ".environment",
             "/app/.env.local",
             "/app/.env.local.backup",
@@ -84,6 +83,8 @@ fn allows_only_file_exceptions_inside_sensitive_paths() {
         &[
             ".env.production.yaml",
             "/app/.env.production.eu.yaml",
+            ".envrc",
+            "/app/.envrc",
             "~/.ssh/config",
             "/home/user/.ssh/config",
             ".ssh/id_ed25519.pub",

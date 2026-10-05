@@ -157,12 +157,15 @@ fn blocks_env_in_path() {
 }
 
 #[test]
-fn blocks_cat_envrc() {
+fn allows_cat_envrc() {
     let output = run_bash("cat .envrc");
-    assert_eq!(
-        blocked_reason(&output).expect("should block"),
-        "Never access .env files directly"
-    );
+    assert!(blocked_reason(&output).is_none());
+}
+
+#[test]
+fn allows_write_envrc() {
+    let output = run_bash("echo 'use flake' > .envrc");
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]

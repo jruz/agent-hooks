@@ -76,8 +76,12 @@ fn has_directory(file: &path::Path, directory: &str) -> bool {
 
 fn has_env_component(file: &path::Path) -> bool {
     file.components().any(|part| {
-        matches!(part, path::Component::Normal(name) if name.to_str().is_some_and(|name| name.starts_with(".env")))
+        matches!(part, path::Component::Normal(name) if name.to_str().is_some_and(is_env_name))
     })
+}
+
+fn is_env_name(name: &str) -> bool {
+    name.starts_with(".env") && name != ".envrc"
 }
 
 fn has_env_parent(file: &path::Path) -> bool {
