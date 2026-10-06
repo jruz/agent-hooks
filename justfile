@@ -1,5 +1,8 @@
 install:
-    sandbox cargo install --path . --force
+    sandbox cargo install \
+        --path . \
+        --locked \
+        --force
 
 check:
     just nix-check
