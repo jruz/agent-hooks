@@ -90,7 +90,6 @@
             --bind /tmp /tmp
             --setenv HOME "$HOME"
             --setenv PATH "${sandboxPath}"
-            --setenv REVISION "${revision}"
             --setenv TERM "''${TERM:-xterm}"
             --setenv TMPDIR /tmp
             --dev /dev
@@ -133,7 +132,6 @@
         devShells.default = pkgs.mkShell {
           packages = commonPackages ++ corePackages ++ [ sandbox ];
           shellHook = ''
-            export REVISION="${revision}"
             echo ""
             echo "  ${cargoToml.package.name} Development Shell"
             echo "  ───────────────────────────"
