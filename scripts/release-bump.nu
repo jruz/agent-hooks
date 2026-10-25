@@ -19,13 +19,6 @@ def cargo-set-version [version: string]: nothing -> nothing {
     }
 }
 
-def cargo-update-lockfile []: nothing -> nothing {
-    let result = (^sandbox cargo check --all-targets | complete)
-    if $result.exit_code != 0 {
-        fail "cargo check" $result.stderr
-    }
-}
-
 def git-add-release-files []: nothing -> nothing {
     let result = (^git add Cargo.toml Cargo.lock | complete)
     if $result.exit_code != 0 {
@@ -34,7 +27,7 @@ def git-add-release-files []: nothing -> nothing {
 }
 
 def git-commit-version [version: string]: nothing -> nothing {
-    let result = (^git commit -m $"[tool] Version: Bump to ($version)" | complete)
+    let result = (^git commit --message $"[tool] Version: Bump to ($version)" | complete)
     if $result.exit_code != 0 {
         fail "git commit" $result.stderr
     }
@@ -49,7 +42,6 @@ def main [version: string]: nothing -> nothing {
     try {
         let current = (open Cargo.toml | get package.version)
         cargo-set-version $version
-        cargo-update-lockfile
         git-add-release-files
         git-commit-version $version
         print $"[(ansi green)OK(ansi reset)] Bumped ($current) -> ($version)"

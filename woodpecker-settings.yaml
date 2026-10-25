@@ -27,5 +27,5 @@ settings:
   trusted:
     network: false
     security: false
-    volumes: true
-  visibility: public
+    volumes: false
+  visibility: private

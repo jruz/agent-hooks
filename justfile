@@ -2,7 +2,16 @@ install:
     sandbox cargo install \
         --path . \
         --locked \
-        --force
+        --force \
+        --root target/dist
+    install \
+        --directory \
+        --mode=755 \
+        "$HOME/.cargo/bin"
+    install \
+        --mode=755 \
+        target/dist/bin/* \
+        "$HOME/.cargo/bin"
 
 check:
     just nix-check
@@ -11,6 +20,7 @@ check:
 
 test:
     just rust-test
+    just bun-test
 
 run *ARGS='':
     just rust-run {{ARGS}}
@@ -107,19 +117,21 @@ woodpecker-check:
 release-bump VERSION:
     nu scripts/release-bump.nu {{ VERSION }}
 
-release-build-linux:
-    sandbox scripts/release-build.sh unknown-linux-gnu x86_64
-    sandbox scripts/release-build.sh unknown-linux-gnu aarch64
+release-build TARGET:
+    nu scripts/release-build.nu {{ TARGET }}
 
-release-build-macos:
-    sandbox scripts/release-build.sh apple-darwin x86_64
-    sandbox scripts/release-build.sh apple-darwin aarch64
+release-build-all:
+    nu scripts/release-build.nu all
 
 release-upload TAG:
     sandbox bun scripts/release-upload.ts {{ TAG }}
 
 release-delete TAG:
+    git tag --delete {{ TAG }}
     sandbox bun scripts/release-delete.ts {{ TAG }}
+
+bun-test:
+    sandbox bun test scripts
 
 sandbox-test:
     sandbox bun scripts/sandbox-test.ts

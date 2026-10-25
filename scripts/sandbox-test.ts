@@ -1,7 +1,7 @@
 import { accessSync, constants, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { homedir } from "node:os";
-import { log } from "./log";
+import { log } from "./lib/log.ts";
 
 type Result = { pass: boolean; msg: string };
 

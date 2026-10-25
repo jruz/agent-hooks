@@ -1,4 +1,12 @@
-import { log } from "./log";
+import { log } from "./lib/log.ts";
+
+const parseId = (data: unknown): number => {
+  if (typeof data !== "object" || data === null || !("id" in data))
+    throw new Error("missing id in response");
+  const { id } = data;
+  if (typeof id !== "number") throw new Error("id is not a number");
+  return id;
+};
 
 const headers = (token: string) => ({
   Authorization: `token ${token}`,
@@ -15,36 +23,35 @@ const repoFromRemote = async (): Promise<string> => {
   const result = await run(["git", "remote", "get-url", "origin"]);
   if (!result.ok) throw new Error("failed to get origin remote URL");
   const match = /codeberg\.org[:/](.+?)(?:\.git)?$/.exec(result.stdout);
-  if (!match)
+  if (!match?.[1])
     throw new Error(`cannot parse repo from remote: ${result.stdout}`);
   return match[1];
 };
 
-const deleteLocalTag = async (tag: string): Promise<void> => {
-  const list = await run(["git", "tag", "--list", tag]);
-  if (list.stdout === "") {
-    log.info(`local tag ${tag} not found, skipping`);
-    return;
-  }
-  const result = await run(["git", "tag", "--delete", tag]);
-  if (!result.ok) throw new Error(`git tag --delete ${tag} failed`);
-  log.info(`deleted local tag ${tag}`);
-};
+const deleteRemoteTag = async (
+  tag: string,
+  token: string,
+  repo: string,
+): Promise<void> => {
+  const url = `https://codeberg.org/api/v1/repos/${repo}/tags/${tag}`;
+  const res = await fetch(url, { headers: headers(token) });
 
-const deleteRemoteTag = async (tag: string): Promise<void> => {
-  const list = await run([
-    "git",
-    "ls-remote",
-    "--tags",
-    "origin",
-    `refs/tags/${tag}`,
-  ]);
-  if (list.stdout === "") {
+  if (res.status === 404) {
     log.info(`remote tag ${tag} not found, skipping`);
     return;
   }
-  const result = await run(["git", "push", "origin", `:refs/tags/${tag}`]);
-  if (!result.ok) throw new Error(`git push origin :refs/tags/${tag} failed`);
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`check tag: ${res.status} ${text}`);
+  }
+
+  const del = await fetch(url, { method: "DELETE", headers: headers(token) });
+  if (!del.ok) {
+    const text = await del.text();
+    throw new Error(`delete tag: ${del.status} ${text}`);
+  }
+
   log.info(`deleted remote tag ${tag}`);
 };
 
@@ -57,8 +64,8 @@ const findRelease = async (
   const res = await fetch(url, { headers: headers(token) });
 
   if (res.ok) {
-    const data = (await res.json()) as { id: number };
-    return data.id;
+    const data: unknown = await res.json();
+    return parseId(data);
   }
 
   if (res.status === 404) {
@@ -102,9 +109,6 @@ const main = async () => {
 
   const repo = await repoFromRemote();
 
-  await deleteLocalTag(tag);
-  await deleteRemoteTag(tag);
-
   const releaseId = await findRelease(tag, token, repo);
   if (releaseId === null) {
     log.info(`no release found for ${tag}`);
@@ -112,6 +116,14 @@ const main = async () => {
     await deleteRelease(releaseId, token, repo);
     log.info(`deleted release ${tag} (id: ${releaseId})`);
   }
+
+  await deleteRemoteTag(tag, token, repo);
 };
 
-await main();
+try {
+  await main();
+} catch (error: unknown) {
+  const message = String(error);
+  log.error(message);
+  process.exitCode = 1;
+}

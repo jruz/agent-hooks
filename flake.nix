@@ -87,6 +87,7 @@
             --dir "$HOME/.cache"
             --dir "$HOME/.supermaven"
             --bind "$PROJECT_DIR" "$PROJECT_DIR"
+            --ro-bind "$(git rev-parse --path-format=absolute --git-common-dir)" "$(git rev-parse --path-format=absolute --git-common-dir)"
             --bind /tmp /tmp
             --setenv HOME "$HOME"
             --setenv PATH "${sandboxPath}"
