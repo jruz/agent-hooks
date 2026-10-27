@@ -1,0 +1,3 @@
+#!/usr/bin/env nu
+^just check
+^just test
