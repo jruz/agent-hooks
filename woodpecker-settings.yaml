@@ -1,19 +1,23 @@
 repo:
   name: jruz/agent-hooks
 secrets:
-  CODEBERG_TOKEN:
+  GITHUB_TOKEN:
     events:
     - tag
     - push
+    - manual
     images: null
     value: |
       -----BEGIN AGE ENCRYPTED FILE-----
-      YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA0Z3R4SGNuUDRZQkxxSXlQ
-      VnQrVC9lb3hMMWpScGt5MmhUTFhNNnhGakhZCit5VlAvT0dlTzJsOGh2ZjcramNj
-      QzlhQlNMcVdxRk5IVWJkSXp0aXRNZncKLT4gXl85cS1ncmVhc2Ugem5JJUJ0Sgpa
-      djQrN3RndwotLS0gZThjbkw2NitTZ21VZlhLYkdRbUJ6cHNGRWcvZEVJM0RVYnJS
-      NHVmbUVSRQrriFDwyJe/Ud4eNS57HIjcxu59Aj3aUTnaafeYgq0BiKsydkFmcMC3
-      rrd08vt0HA0vVBWM5Qnh50hgm/BIYHf6XuWZ/85iHAc=
+      YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBqWUZZLzdNK2pLVW45eERK
+      MDM3TUdvajhuN29jNUp3S3VBK3IvZnJ1T2dRCkRmWEV0cmFObUxpR3RwSUlHbVp5
+      NGRIS0owUnNxbEU5Qm05TEEwR21EMVUKLT4gXSJ+KkNxWTctZ3JlYXNlIEVEfSBP
+      cUkgOWk9U1EwLSBKYykKWi9lclNEU1Uveit2bk8yOFJoQkp6QUI0alBHNzRhRDdM
+      ZWdBRU9nTXdDRlZKektpeE1sOVFEM3h6cmNOZ2hqRApCeDZCWjc4Ci0tLSB0anVQ
+      VHIzaWZZN1kxWm5WZlpYUFU3ODJGdTBhNm1qYkZ6Z3plQmhramdvClP+a+A9ksaz
+      AtFkIkB3NL8W9KBUO9zkFlUjaUOXQ0fButbEooz6FhFRfG/bgmZAoWHmO8pHZBag
+      uAgFvKVMYmBfVars5yaN4JCQKF5hTotU2WBvCimsn6ovR3sShmZVEOhod9O7r4Q1
+      xjY+OUg1aPoPZIuV1VnUWVKLoZP9
       -----END AGE ENCRYPTED FILE-----
 settings:
   allow_deploy: false

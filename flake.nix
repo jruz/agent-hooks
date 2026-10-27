@@ -90,6 +90,7 @@
           [
             deadnix
             fd
+            gh
             git
             just
             nixfmt
@@ -127,6 +128,7 @@
             echo "  nixpkgs      ${pkgs.lib.trivial.release}"
             echo "  rust         ${rustVersion} (sandbox)"
             echo "  bun          ${pkgs.bun.version} (sandbox)"
+            echo "  gh           ${pkgs.gh.version}"
             echo ""
           ''
           + pkgs.lib.optionalString pkgs.stdenv.isLinux ''

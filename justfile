@@ -21,7 +21,6 @@ check:
 
 test:
     just rust-test
-    just bun-test
 
 run *ARGS='':
     just rust-run {{ARGS}}
@@ -129,14 +128,18 @@ release-build-all:
     nu scripts/release-build.nu all
 
 release-upload TAG:
-    sandbox bun scripts/release-upload.ts {{ TAG }}
+    gh release view {{ TAG }} \
+        || gh release create {{ TAG }} \
+            --title {{ TAG }} \
+            --verify-tag
+    gh release upload {{ TAG }} \
+        {{ env("CI_REPO_NAME") }}-* \
+        --clobber
 
 release-delete TAG:
-    git tag --delete {{ TAG }}
-    sandbox bun scripts/release-delete.ts {{ TAG }}
-
-bun-test:
-    sandbox bun test scripts
+    gh release delete {{ TAG }} \
+        --cleanup-tag \
+        --yes
 
 sandbox-test:
     just sandbox-check
