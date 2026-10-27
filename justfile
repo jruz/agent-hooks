@@ -14,6 +14,7 @@ install:
         "$HOME/.cargo/bin"
 
 check:
+    just sandbox-check
     just nix-check
     just woodpecker-check
     just rust-check
@@ -66,6 +67,10 @@ rust-check:
     just rust-cargo-check
     just rust-fmt-check
     just rust-clippy-check
+    just rust-machete
+
+rust-machete:
+    sandbox cargo machete --with-metadata
 
 rust-clippy-check *ARGS='':
     sandbox cargo clippy --all-targets {{ARGS}}
@@ -134,4 +139,24 @@ bun-test:
     sandbox bun test scripts
 
 sandbox-test:
-    sandbox bun scripts/sandbox-test.ts
+    just sandbox-check
+
+[positional-arguments]
+sandbox-check *EXTRA_ALLOWED:
+    just sandbox-isolation-check
+    just sandbox-allowlist-check "$@"
+    just sandbox-tmp-check
+    just sandbox-args-check
+
+sandbox-isolation-check:
+    sandbox bun scripts/sandbox-isolation-check.ts
+
+[positional-arguments]
+sandbox-allowlist-check *EXTRA_ALLOWED:
+    sandbox nu scripts/sandbox-isolation-check.nu "$@"
+
+sandbox-tmp-check:
+    nu scripts/sandbox-tmp-check.nu
+
+sandbox-args-check:
+    nu scripts/sandbox-args-check.nu
