@@ -89,6 +89,9 @@ fn has_env_parent(file: &path::Path) -> bool {
 }
 
 fn is_encrypted_env(file: &path::Path) -> bool {
+    if file.file_name().is_some_and(|name| name == ".env.age") {
+        return true;
+    }
     file.file_name()
         .and_then(|name| name.to_str())
         .and_then(|name| name.strip_prefix(".env."))
