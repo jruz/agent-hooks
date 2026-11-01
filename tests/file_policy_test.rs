@@ -60,7 +60,11 @@ fn blocks_plaintext_env_variants_for_file_tools() {
             ".env",
             ".env.local",
             ".env.production",
-            ".env.example",
+            ".env.example.bak",
+            ".env.example.local",
+            ".env.example/.env",
+            ".env/.env.example",
+            "home/../.env.example",
             ".environment",
             "/app/.env.local",
             "/app/.env.local.backup",
@@ -85,6 +89,8 @@ fn blocks_plaintext_env_variants_for_file_tools() {
 fn allows_only_file_exceptions_inside_sensitive_paths() {
     assert_file_policy(
         &[
+            ".env.example",
+            "/app/.env.example",
             ".env.production.yaml",
             "/app/.env.production.eu.yaml",
             ".env.age",
@@ -110,6 +116,9 @@ fn file_exceptions_do_not_allow_other_sensitive_operands() {
             ".ssh/id_ed25519",
             ".ssh/id_ed25519.pub.bak",
             ".ssh/config.bak",
+            ".ssh/.env.example",
+            ".docker/.env.example",
+            ".env.example/id_ed25519.pub",
             ".ssh/.env.production.yaml",
             ".ssh/.env.age",
             ".docker/.env.age",

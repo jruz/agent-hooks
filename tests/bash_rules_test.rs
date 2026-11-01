@@ -125,7 +125,7 @@ fn blocks_sops_decrypt() {
     let output = run_bash("sops --decrypt secrets.yaml");
     assert_eq!(
         blocked_reason(&output).expect("should block"),
-        "Don't decrypt sops files, just read them directly"
+        "Direct SOPS decryption is blocked. Read the encrypted YAML directly to inspect keys and unencrypted values. Use `just sops-decrypt-dev` to generate `.env` and `just dotenv-show` for masked inspection, where these recipes exist."
     );
 }
 
@@ -134,7 +134,7 @@ fn blocks_sops_short_decrypt() {
     let output = run_bash("sops -d secrets.yaml");
     assert_eq!(
         blocked_reason(&output).expect("should block"),
-        "Don't decrypt sops files, just read them directly"
+        "Direct SOPS decryption is blocked. Read the encrypted YAML directly to inspect keys and unencrypted values. Use `just sops-decrypt-dev` to generate `.env` and `just dotenv-show` for masked inspection, where these recipes exist."
     );
 }
 
@@ -169,12 +169,9 @@ fn allows_write_envrc() {
 }
 
 #[test]
-fn blocks_env_example() {
+fn allows_read_env_example() {
     let output = run_bash("cat .env.example");
-    assert_eq!(
-        blocked_reason(&output).expect("should block"),
-        "Never access .env files directly"
-    );
+    assert!(blocked_reason(&output).is_none());
 }
 
 #[test]

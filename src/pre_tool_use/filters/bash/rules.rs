@@ -28,11 +28,13 @@ pub fn run(
             Some("Access to sensitive command blocked")
         }
         "sops"
-            if first == Some("decrypt")
-                || has_argument(arguments, "--decrypt")
-                || has_argument(arguments, "-d") =>
+            if ["decrypt", "exec-env", "exec-file", "--decrypt", "-d"]
+                .iter()
+                .any(|argument| has_argument(arguments, argument)) =>
         {
-            Some("Don't decrypt sops files, just read them directly")
+            Some(
+                "Direct SOPS decryption is blocked. Read the encrypted YAML directly to inspect keys and unencrypted values. Use `just sops-decrypt-dev` to generate `.env` and `just dotenv-show` for masked inspection, where these recipes exist.",
+            )
         }
         "gleam" if first == Some("run") => Some("Use just run instead"),
         "security" => Some("Access to macOS security command blocked"),

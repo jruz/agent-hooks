@@ -19,7 +19,7 @@ pub enum Error {
     Shell(#[from] shell::Error),
 }
 
-pub fn run(arguments: &[&ast::Word]) -> Result<(), Error> {
+pub fn run(arguments: &[&ast::Word], stdin: Option<&str>) -> Result<(), Error> {
     let values = arguments
         .iter()
         .map(|word| message_text(word))
@@ -27,12 +27,14 @@ pub fn run(arguments: &[&ast::Word]) -> Result<(), Error> {
     if values
         .iter()
         .flatten()
+        .map(String::as_str)
+        .chain(stdin)
         .any(|value| value.contains("Co-Authored-By"))
     {
         return Err(Error::Coauthor);
     }
     if !should_skip(&values) {
-        check_title(&values)?;
+        check_title(&values, stdin)?;
     }
     Ok(())
 }
@@ -55,8 +57,8 @@ fn should_skip(arguments: &[Option<String>]) -> bool {
     }
 }
 
-fn check_title(arguments: &[Option<String>]) -> Result<(), Error> {
-    let title = extract_title(arguments).ok_or(Error::MissingTitle)?;
+fn check_title(arguments: &[Option<String>], stdin: Option<&str>) -> Result<(), Error> {
+    let title = extract_title(arguments, stdin).ok_or(Error::MissingTitle)?;
     let expression = Regex::new(COMMIT_TITLE_PATTERN)?;
     if expression.is_match(title) {
         Ok(())
@@ -65,17 +67,22 @@ fn check_title(arguments: &[Option<String>]) -> Result<(), Error> {
     }
 }
 
-fn extract_title(arguments: &[Option<String>]) -> Option<&str> {
+fn extract_title<'message>(
+    arguments: &'message [Option<String>],
+    stdin: Option<&'message str>,
+) -> Option<&'message str> {
     match arguments.split_first() {
         Some((Some(argument), remaining)) => match argument.as_str() {
             "-m" | "--message" => remaining.first()?.as_deref()?.lines().next(),
+            "-F" | "--file" if remaining.first()?.as_deref()? == "-" => stdin?.lines().next(),
+            "-F-" | "--file=-" => stdin?.lines().next(),
             argument if argument.starts_with("--message=") => {
                 argument.strip_prefix("--message=")?.lines().next()
             }
             argument if argument.starts_with("-m") => argument.strip_prefix("-m")?.lines().next(),
-            _ => extract_title(remaining),
+            _ => extract_title(remaining, stdin),
         },
-        Some((None, remaining)) => extract_title(remaining),
+        Some((None, remaining)) => extract_title(remaining, stdin),
         None => None,
     }
 }

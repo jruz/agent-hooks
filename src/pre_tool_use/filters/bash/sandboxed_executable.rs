@@ -48,13 +48,17 @@ pub enum Error {
         "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available."
     )]
     Unsandboxed,
+    #[error("Use bare `sandbox`, not an absolute or relative wrapper path.")]
+    WrapperPath,
 }
 
 pub fn run(executable: &str, sandbox: shell::Sandbox) -> Result<(), Error> {
     let name = shell::executable_name(executable);
-    let requires_sandbox = name == "sandbox" && executable != "sandbox"
-        || SANDBOX_REQUIRED_EXECUTABLES.contains(&name)
-        || is_versioned_python_executable(name);
+    if name == "sandbox" && executable != "sandbox" && sandbox == shell::Sandbox::Outside {
+        return Err(Error::WrapperPath);
+    }
+    let requires_sandbox =
+        SANDBOX_REQUIRED_EXECUTABLES.contains(&name) || is_versioned_python_executable(name);
     if requires_sandbox && sandbox == shell::Sandbox::Outside {
         Err(Error::Unsandboxed)
     } else {

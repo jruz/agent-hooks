@@ -75,8 +75,9 @@ fn check_invocation(
     arguments: &[&ast::Word],
     sandbox: shell::Sandbox,
     execution: shell::Execution,
+    stdin: Option<&str>,
 ) -> Result<(), String> {
-    let result = check_command(executable, arguments, sandbox, execution);
+    let result = check_command(executable, arguments, sandbox, execution, stdin);
     policy_reason(result)
 }
 
@@ -85,6 +86,7 @@ fn check_command(
     arguments: &[&ast::Word],
     sandbox: shell::Sandbox,
     execution: shell::Execution,
+    stdin: Option<&str>,
 ) -> Result<(), Error> {
     let name = shell::executable_name(executable);
     let arguments = if name == "git" {
@@ -104,7 +106,7 @@ fn check_command(
         curl::run(arguments)?;
     }
     if name == "git" && literals.first().and_then(Option::as_deref) == Some("commit") {
-        commit_msg::run(arguments)?;
+        commit_msg::run(arguments, stdin)?;
     }
     if execution == shell::Execution::Local {
         sandboxed_executable::run(executable, sandbox)?;

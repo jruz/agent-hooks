@@ -60,7 +60,7 @@ pub fn check_path(value: &str) -> Result<(), Error> {
     let traversal = file
         .components()
         .any(|part| part == path::Component::ParentDir);
-    if has_env_component(file) && (traversal || has_env_parent(file) || !is_encrypted_env(file)) {
+    if has_env_component(file) && (traversal || has_env_parent(file) || !is_env_exception(file)) {
         return Err(Error::Env);
     }
     if has_directory(file, ".ssh") && (traversal || !is_ssh_exception(file)) {
@@ -88,8 +88,11 @@ fn has_env_parent(file: &path::Path) -> bool {
     file.parent().is_some_and(has_env_component)
 }
 
-fn is_encrypted_env(file: &path::Path) -> bool {
-    if file.file_name().is_some_and(|name| name == ".env.age") {
+fn is_env_exception(file: &path::Path) -> bool {
+    if file
+        .file_name()
+        .is_some_and(|name| name == ".env.age" || name == ".env.example")
+    {
         return true;
     }
     file.file_name()

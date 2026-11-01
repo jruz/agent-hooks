@@ -155,8 +155,87 @@ fn blocks_decryption_with_shell_quoting_and_spacing() {
             "sops    --decrypt secrets.yaml",
             "'sops' '-d' secrets.yaml",
             "sandbox bash -c 'sops --decrypt secrets.yaml'",
+            "sops decrypt .env.dev.yaml",
+            "sops --decrypt --extract '[\"EXAMPLE_KEY\"]' .env.dev.yaml",
+            "sops --decrypt .env.dev.yaml | jq keys",
+            "sops --decrypt .env.dev.yaml > /dev/null",
+            "sops --config .sops.yaml decrypt secrets.yaml",
+            "sops --config=.sops.yaml decrypt secrets.yaml",
+            "sops --verbose --config .sops.yaml decrypt secrets.yaml",
+            "sops exec-env secrets.yaml true",
+            "sops exec-file secrets.yaml true",
+            "sops --config .sops.yaml exec-env secrets.yaml true",
+            "sops --config=.sops.yaml exec-file secrets.yaml true",
+            "/usr/bin/sops --config .sops.yaml decrypt secrets.yaml",
+            "'sops' 'exec-env' secrets.yaml true",
+            "so\\ps exec-file secrets.yaml true",
+            "command sops --config .sops.yaml decrypt secrets.yaml",
+            "env MODE=test sops exec-env secrets.yaml true",
+            "sandbox sops exec-file secrets.yaml true",
+            "sandbox bash -c 'sops --config .sops.yaml decrypt secrets.yaml'",
+            "echo ready && sops exec-env secrets.yaml true",
+            "sops exec-file secrets.yaml true > /dev/null",
+            "sops --config .sops.yaml decrypt secrets.yaml | jq keys",
+            "echo \"$(sops --config .sops.yaml decrypt secrets.yaml)\"",
+            "ssh host 'sops exec-env secrets.yaml true'",
+            "docker exec container sops exec-file secrets.yaml true",
         ],
-        "Don't decrypt sops files, just read them directly",
+        "Direct SOPS decryption is blocked. Read the encrypted YAML directly to inspect keys and unencrypted values. Use `just sops-decrypt-dev` to generate `.env` and `just dotenv-show` for masked inspection, where these recipes exist.",
+    );
+}
+
+#[test]
+fn allows_sops_recipes_metadata_encryption_and_literal_mentions() {
+    assert_allowed(&[
+        "just sops-decrypt-dev",
+        "just dotenv-show",
+        "sops --version",
+        "sops --help",
+        "sops filestatus secrets.yaml",
+        "sops encrypt secrets.yaml",
+        "sops --config .sops.yaml encrypt secrets.yaml",
+        "sops --encrypt secrets.yaml",
+        "sops -e secrets.yaml",
+        "rg 'sops exec-env' src",
+        "echo 'sops --config .sops.yaml decrypt secrets.yaml'",
+        "printf '%s\\n' 'sops exec-file secrets.yaml true'",
+        "cat <<'EOF'\nsops exec-env secrets.yaml true\nEOF",
+    ]);
+}
+
+#[test]
+fn preserves_quotes_and_escapes_in_nested_shell_commands() {
+    assert_allowed(&[
+        r#"sh -c 'printf "%s" "value(\$\$tag)"'"#,
+        r#"docker exec container sh -c 'printf "%s" "value(\$\$tag{\"key\":\"value\"}\$\$tag)"'"#,
+        r#"sh -c 'printf "%s" "\$TOKEN"'"#,
+        r#"sh -c 'printf "%s" "literal \"quotes\" and \\slashes"'"#,
+        r#"sh -c 'printf "%s" "literal \q"'"#,
+        r#"sh -c 'printf "%s" "[*?]"'"#,
+        r#"sh -c 'printf "%s" "{one,two}"'"#,
+        r#"ssh host 'printf "%s" "value(\$\$tag)"'"#,
+        r#"sandbox sh -c 'printf "%s" "value(\$\$tag)"'"#,
+        r#"sh -c 'printf "%s" '\''literal $TOKEN'\'''"#,
+        "sh -c 'printf \"%s\" \"line\\\ncontinuation\"'",
+    ]);
+    assert_blocked(
+        &[
+            r#"sh -c 'printf "%s" "$TOKEN"'"#,
+            r#"docker exec container sh -c 'printf "%s" "$TOKEN"'"#,
+            r#"sh -c 'printf "%s" '\''literal'\''"$TOKEN"'"#,
+        ],
+        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+    );
+    assert_blocked(
+        &[r#"sh -c 'cat ".env"'"#, r"sh -c 'cat '\''.env'\'''"],
+        "Never access .env files directly",
+    );
+    assert_blocked(
+        &[
+            r#"sh -c '"sops" "decrypt" secrets.yaml'"#,
+            r#"sh -c "'sops' 'exec-env' secrets.yaml true""#,
+        ],
+        "Direct SOPS decryption is blocked. Read the encrypted YAML directly to inspect keys and unencrypted values. Use `just sops-decrypt-dev` to generate `.env` and `just dotenv-show` for masked inspection, where these recipes exist.",
     );
 }
 
@@ -267,7 +346,14 @@ fn blocks_all_plaintext_env_shell_variants() {
         &[
             "cat .env.local",
             "cat .env.production",
-            "cat .env.example",
+            "cat .env.example.bak",
+            "cat .env.example.local",
+            "cat .env.example/.env",
+            "cat .env/.env.example",
+            "cat home/../.env.example",
+            "cat .env.example/id_ed25519.pub",
+            "cat .env.example .env",
+            "printf 'EXAMPLE=value' > .env.local",
             "cat .environment",
             "cat \"$HOME/.env.local\"",
             "cat .env.pub",
@@ -290,6 +376,109 @@ fn blocks_all_plaintext_env_shell_variants() {
             "sandbox bash -c 'cat .env.local'",
             "ssh host 'cat .env.local'",
             "docker exec container cat .env.local",
+        ],
+        "Never access .env files directly",
+    );
+}
+
+#[test]
+fn allows_reading_and_writing_exact_env_example_files() {
+    assert_allowed(&[
+        "cat .env.example",
+        "cat /app/.env.example",
+        "cat < .env.example",
+        "rg EXAMPLE .env.example",
+        "printf 'EXAMPLE=value' > .env.example",
+        "printf 'EXAMPLE=value' >> /app/.env.example",
+        "sed -i 's/old/new/' .env.example",
+    ]);
+}
+
+#[test]
+fn allows_filename_only_metadata_checks() {
+    assert_allowed(&[
+        "ls .env*",
+        "ls -la .env .env.local",
+        "ls -- .env",
+        "ls ~/.ssh",
+        "git ls-files .env",
+        "git ls-files -- .env.local",
+        "git ls-files --cached --others --exclude-standard -- '.env*'",
+        "git ls-files --exclude-from .gitignore -- .env",
+        "git ls-files --exclude-from=.gitignore -- .env",
+        "git ls-files -X.gitignore -- .env",
+        "git check-ignore .env",
+        "git check-ignore --verbose -- .env.local",
+        "printf '.env\\n' | git check-ignore --stdin",
+        "sandbox bash -c 'ls .env*'",
+        "ssh host 'git ls-files .env'",
+        "docker exec container ls .env",
+    ]);
+}
+
+#[test]
+fn metadata_checks_do_not_allow_sensitive_content_or_mutation() {
+    assert_blocked(
+        &[
+            "git ls-files --exclude-from .env",
+            "git ls-files --exclude-from=.env",
+            "git ls-files --exclude-from=\"$HOME/.env\"",
+            "git ls-files -X .env.local",
+            "git ls-files -X.env.local",
+            "git ls-files --exclude-per-directory .env",
+            "git ls-files --exclude-per-directory=.env.local",
+            "git check-ignore --stdin < .env",
+            "git ls-files .env > .env.local",
+            "ls .env* > .env.local",
+            "ls .env; cat .env",
+            "git ls-files .env; rm .env",
+            "git add .env",
+            "ls \"$(cat .env)\"",
+        ],
+        "Never access .env files directly",
+    );
+    assert_blocked(
+        &["git ls-files --exclude-from ~/.ssh/id_ed25519"],
+        "Access to sensitive file blocked",
+    );
+}
+
+#[test]
+fn allows_sed_substitution_text_without_treating_it_as_a_file() {
+    assert_allowed(&[
+        "sed -i 's/old/.env.local/' README.md",
+        "sed 's/.env.local/.env.dev.yaml/g' README.md",
+        "sed -e 's/old/.env.local/' -e 's/new/.env.production/' README.md",
+        "sed --expression='s/old/.env.local/' README.md",
+        "sed -es/old/.env.local/ README.md",
+        "sed -n -- 's|old|.env.local|p' README.md",
+        "sed --expression 's/old/.env.local/' -- README.md",
+        "sed -f script.sed README.md",
+        "sed --file=script.sed README.md",
+        "sed -fscript.sed README.md",
+        "sed -i 's/old/new/' .env.example",
+    ]);
+}
+
+#[test]
+fn sed_expression_exemptions_do_not_allow_sensitive_file_operands() {
+    assert_blocked(
+        &[
+            "sed -i 's/old/new/' .env",
+            "sed -e 's/old/.env.local/' .env.production",
+            "sed -- 's/old/new/' .env",
+            "sed --expression='s/old/new/' -- .env.local",
+            "sed -f .env README.md",
+            "sed --file=.env README.md",
+            "sed -f.env.local README.md",
+            "sed -e 's/old/new/' -f .env README.md",
+            "sed 's/old/new/w .env' README.md",
+            "sed 's/old/new/;r .env' README.md",
+            "sed 'r .env' README.md",
+            "sed 'w .env' README.md",
+            "sed 's/old/new/' < .env",
+            "sed 's/old/new/' README.md > .env",
+            "sed \"s/old/$(cat .env)/\" README.md",
         ],
         "Never access .env files directly",
     );
@@ -321,13 +510,14 @@ fn allows_file_exceptions_in_shell_operands() {
 fn rejects_cross_directory_exceptions_and_private_key_operands() {
     assert_blocked(
         &[
-            "ls ~/.ssh",
             "cat ~/.ssh/id_ed25519",
             "cat ~/.ssh/config.bak",
             "cat ~/.ssh/id_ed25519.pub.bak",
             "cat ~/.ssh/config ~/.ssh/id_ed25519",
             "cat ~/.ssh/id_ed25519.pub ~/.ssh/id_ed25519",
             "rg key ~/.ssh",
+            "cat ~/.ssh/.env.example",
+            "cat ~/.docker/.env.example",
             "cat ~/.ssh/.env.production.yaml",
             "cat ~/.docker/config.pub",
             "cat ~/.docker/.env.production.yaml",
@@ -403,6 +593,129 @@ fn blocks_direct_variable_output_without_blocking_variable_use() {
             "cat <<EOF\n$TOKEN\nEOF",
             "cat <<< \"$TOKEN\"",
         ],
+        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+    );
+}
+
+#[test]
+fn parse_failures_explain_inspection_failure_without_echoing_input() {
+    assert_blocked(
+        &[
+            "echo \"DUMMY_SECRET_SENTINEL",
+            "cat <<'EOF'\nDUMMY_SECRET_SENTINEL\n",
+        ],
+        "Could not inspect this command because parsing failed.",
+    );
+}
+
+#[test]
+fn sandbox_wrapper_path_denials_explain_the_bare_command_alternative() {
+    assert_blocked(
+        &[
+            "/nix/store/00000000000000000000000000000000-sandbox/bin/sandbox bun script.ts",
+            "/tmp/sandbox bun script.ts",
+            "./sandbox bun script.ts",
+            "command ./sandbox bun script.ts",
+        ],
+        "Use bare `sandbox`, not an absolute or relative wrapper path.",
+    );
+    assert_allowed(&["sandbox bun script.ts"]);
+}
+
+#[test]
+fn allows_literal_bracket_predicates() {
+    assert_allowed(&[
+        "[ -v DIRENV_LOG_FORMAT ]",
+        "[ \"$code\" != \"000\" ]",
+        "if [ \"$code\" != \"000\" ]; then git status; fi",
+        "command [ -n \"$code\" ]",
+        "'[' -n \"$code\" ']'",
+        "sandbox bash -c '[ -n \"$code\" ]'",
+        "ssh host '[ -n \"$code\" ]'",
+        "docker exec container [ -n \"$code\" ]",
+    ]);
+}
+
+#[test]
+fn bracket_predicates_do_not_allow_dynamic_executables() {
+    assert_blocked(
+        &["[a-z]* argument", "[[] argument", "\"$predicate\" argument"],
+        "Dynamic executable names must be invoked through `sandbox`",
+    );
+    assert_blocked(
+        &["[ -n \"$(printenv TOKEN)\" ]"],
+        "Never print environment variables",
+    );
+    assert_blocked(
+        &["[ -n \"$TOKEN\" ]; echo \"$TOKEN\""],
+        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+    );
+}
+
+#[test]
+fn allows_only_explicitly_approved_variable_output() {
+    assert_allowed(&[
+        "echo $HOME $USER $PATH",
+        "echo \"${HOME}/project ${USER} ${PATH}\"",
+        "printf '%s\\n' \"$HOME\" \"$USER\" \"$PATH\"",
+        "print -r -- \"$HOME\"",
+        "false; echo \"exit=$?\"",
+        "printf '%s\\n' \"${?}\"",
+        "cat <<EOF\n$HOME $USER $PATH $?\nEOF",
+        "cat <<< \"$HOME\"",
+        "sandbox bash -c 'echo \"$HOME\"'",
+        "ssh host 'echo \"$USER\"'",
+        "docker exec container echo \"$PATH\"",
+    ]);
+}
+
+#[test]
+fn allows_plain_lowercase_variable_output() {
+    assert_allowed(&[
+        "for file in Cargo.toml README.md; do printf '%s\\n' \"$file\"; done",
+        "printf '%s\\n' \"${file}\" \"$_file\" \"$file2\"",
+        "[ -n \"$code\" ]; echo \"$code\"",
+        "printf '%s\\n' \"$start $end $total\"",
+        "print -r -- \"$file\"",
+        "cat <<EOF\n$file\nEOF",
+        "cat <<< \"$file\"",
+        "sandbox bash -c 'echo \"$file\"'",
+        "ssh host 'echo \"$file\"'",
+        "docker exec container echo \"$file\"",
+    ]);
+}
+
+#[test]
+fn variable_allowlist_does_not_allow_other_expansions_or_dumps() {
+    assert_blocked(
+        &[
+            "echo \"$HOME $TOKEN\"",
+            "printf '%s\\n' \"$USER\" \"$TOKEN\"",
+            "echo \"$HOME_TOKEN\"",
+            "echo \"$USERNAME\"",
+            "echo \"$PWD\"",
+            "echo \"$apiToken\"",
+            "echo \"$_TOKEN\"",
+            "echo \"${!file}\"",
+            "echo \"${file:-$TOKEN}\"",
+            "echo \"${file/$file/$TOKEN}\"",
+            "echo \"${file[0]}\"",
+            "echo \"$1\"",
+            "echo \"$@\"",
+            "echo \"$*\"",
+            "echo \"$((token))\"",
+            "echo \"${!HOME}\"",
+            "echo \"${HOME:-$TOKEN}\"",
+            "echo \"${HOME/$USER/$TOKEN}\"",
+            "echo \"${HOME[0]}\"",
+            "echo \"$((TOKEN))\"",
+            "cat <<EOF\n$HOME $TOKEN\nEOF",
+            "cat <<< \"$HOME $TOKEN\"",
+        ],
+        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+    );
+    assert_blocked(
+        &["printenv HOME", "env", "set -x; echo \"$HOME\""],
         "Never print environment variables",
     );
 }
@@ -551,6 +864,55 @@ fn validates_literal_heredoc_messages_without_executing_shell() {
             "git commit -m \"$(cat <<'EOF'\n[feat] Auth: add login\nEOF\nprintf extra\n)\"",
         ],
         "Could not extract commit title",
+    );
+}
+
+#[test]
+fn validates_literal_commit_messages_from_stdin() {
+    assert_allowed(&[
+        "git commit --quiet --file - <<'EOF'\n[tool] Hooks: accept literal stdin\n\nMessage body.\nEOF",
+        "git commit -F - <<'EOF'\n[bugs] Hooks: accept short option\nEOF",
+        "git commit -F- <<'EOF'\n[bugs] Hooks: accept attached option\nEOF",
+        "git commit --file=- <<'EOF'\n[bugs] Hooks: accept equals option\nEOF",
+        "git commit --file - <<EOF\n[bugs] Hooks: accept unexpanded text\nEOF",
+        "git commit -F - 0<<'EOF'\n[bugs] Hooks: accept explicit stdin\nEOF",
+        "<<'EOF' git commit -F -\n[bugs] Hooks: accept prefix redirect\nEOF",
+        "command git -C /tmp commit -F - <<'EOF'\n[bugs] Hooks: support launcher\nEOF",
+        "sandbox git commit -F - <<'EOF'\n[bugs] Hooks: support sandbox\nEOF",
+        "git commit -F - <<'EOF'\n[bugs] Hooks: preserve literal text\n\n$(security find-generic-password)\nEOF",
+        "git commit -F - <<'EOF' > commit-output.txt\n[bugs] Hooks: preserve stdout redirect\nEOF",
+    ]);
+    assert_blocked(
+        &["git commit -F - <<'EOF'\ninvalid title\nEOF"],
+        "Invalid commit title, follow the Skill(commit) format",
+    );
+    assert_blocked(
+        &["git commit -F - <<'EOF'\n[bugs] Hooks: reject trailer\n\nCo-Authored-By: Example\nEOF"],
+        "Never include Co-Authored-By in commit messages",
+    );
+}
+
+#[test]
+fn requires_known_literal_stdin_for_commit_messages() {
+    assert_blocked(
+        &[
+            "git commit -F -",
+            "git commit -F message.txt",
+            "git commit -F - < message.txt",
+            "git commit -F - <<'EOF'\nEOF",
+            "git commit -F - <<EOF\n[bugs] Hooks: unknown $HOME\nEOF",
+            "git commit -F - 3<<'EOF'\n[bugs] Hooks: wrong descriptor\nEOF",
+            "git commit -F - <<'EOF' < message.txt\n[bugs] Hooks: replaced stdin\nEOF",
+            "git commit -F - <<'EOF' 0<&3\n[bugs] Hooks: replaced stdin\nEOF",
+            "git commit -F - <<'EOF'\n[bugs] Hooks: first command only\nEOF\ngit commit -F -",
+        ],
+        "Could not extract commit title",
+    );
+    assert_blocked(
+        &[
+            "git commit -F - <<'EOF'\n[bugs] Hooks: inspect following commands\nEOF\nsecurity find-generic-password",
+        ],
+        "Access to macOS security command blocked",
     );
 }
 

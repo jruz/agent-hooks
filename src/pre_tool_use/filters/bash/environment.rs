@@ -8,6 +8,10 @@ pub enum Error {
     Dump,
     #[error("Shell option requires a value")]
     MissingOptionValue,
+    #[error(
+        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?)."
+    )]
+    RestrictedOutput,
     #[error(transparent)]
     Shell(#[from] shell::Error),
 }
@@ -35,7 +39,7 @@ pub fn check_output(output: shell::Output<'_>) -> Result<(), Error> {
 
 fn check_output_expansion(pieces: &[word::WordPieceWithSource]) -> Result<(), Error> {
     if pieces.iter().any(|piece| prints_variable(&piece.piece)) {
-        return Err(Error::Dump);
+        return Err(Error::RestrictedOutput);
     }
     Ok(())
 }
@@ -48,9 +52,8 @@ fn check_output_word(word: &ast::Word) -> Result<(), Error> {
 
 fn prints_variable(piece: &word::WordPiece) -> bool {
     match piece {
-        word::WordPiece::ParameterExpansion(_)
-        | word::WordPiece::ArithmeticExpression(_)
-        | word::WordPiece::TildeExpansion(_) => true,
+        word::WordPiece::ParameterExpansion(expression) => !is_allowed_parameter(expression),
+        word::WordPiece::ArithmeticExpression(_) | word::WordPiece::TildeExpansion(_) => true,
         word::WordPiece::DoubleQuotedSequence(pieces)
         | word::WordPiece::GettextDoubleQuotedSequence(pieces) => {
             pieces.iter().any(|nested| prints_variable(&nested.piece))
@@ -62,6 +65,29 @@ fn prints_variable(piece: &word::WordPiece) -> bool {
         | word::WordPiece::CommandSubstitution(_)
         | word::WordPiece::BackquotedCommandSubstitution(_) => false,
     }
+}
+
+fn is_allowed_parameter(expression: &word::ParameterExpr) -> bool {
+    matches!(
+        expression,
+        word::ParameterExpr::Parameter {
+            parameter: word::Parameter::Named(name),
+            indirect: false,
+        } if matches!(name.as_str(), "HOME" | "USER" | "PATH") || is_lowercase_name(name)
+    ) || matches!(
+        expression,
+        word::ParameterExpr::Parameter {
+            parameter: word::Parameter::Special(word::SpecialParameter::LastExitStatus),
+            indirect: false,
+        }
+    )
+}
+
+fn is_lowercase_name(name: &str) -> bool {
+    name.chars().any(|character| character.is_ascii_lowercase())
+        && name.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
+        })
 }
 
 fn check_binding_output(arguments: &[&ast::Word]) -> Result<(), Error> {

@@ -2,7 +2,8 @@ use std::io;
 
 use brush_parser::{self, ast, word};
 
-pub type InvocationCheck = fn(&str, &[&ast::Word], Sandbox, Execution) -> Result<(), String>;
+pub type InvocationCheck =
+    fn(&str, &[&ast::Word], Sandbox, Execution, Option<&str>) -> Result<(), String>;
 
 #[derive(Clone, Copy)]
 pub struct Visitor {
@@ -12,10 +13,11 @@ pub struct Visitor {
     pub path: fn(&ast::Word) -> Result<(), String>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Context {
     execution: Execution,
     sandbox: Sandbox,
+    stdin: Option<String>,
     visitor: Visitor,
 }
 
@@ -58,11 +60,11 @@ pub enum Error {
     DynamicExecutable,
     #[error("find execution clauses must end with `;` or `+`")]
     MissingFindTerminator,
-    #[error(transparent)]
+    #[error("Could not inspect this command because parsing failed.")]
     Parse(#[from] brush_parser::ParseError),
     #[error("{0}")]
     Policy(String),
-    #[error(transparent)]
+    #[error("Could not inspect this command because parsing failed.")]
     WordParse(#[from] brush_parser::WordParseError),
 }
 
@@ -72,6 +74,7 @@ pub fn run(command: &str, visitor: &Visitor) -> Result<(), Error> {
         execution: Execution::Local,
         sandbox: Sandbox::Outside,
         visitor: *visitor,
+        stdin: None,
     };
     check_program(&context, &program)
 }
@@ -159,14 +162,62 @@ fn check_simple_command(context: &Context, command: &ast::SimpleCommand) -> Resu
     let suffix_items = suffix_items(suffix);
     check_suffix_items(context, suffix_items)?;
     let arguments = command_words(suffix);
+    let context = Context {
+        execution: context.execution,
+        sandbox: context.sandbox,
+        visitor: context.visitor,
+        stdin: literal_stdin(command)?,
+    };
 
     match command.word_or_name.as_ref() {
         Some(word) => {
-            check_word(context, word)?;
-            check_executable_word(context, word, &arguments)
+            check_word(&context, word)?;
+            check_executable_word(&context, word, &arguments)
         }
         None => Ok(()),
     }
+}
+
+fn literal_stdin(command: &ast::SimpleCommand) -> Result<Option<String>, Error> {
+    let suffix = command.suffix.iter().flat_map(|suffix| &suffix.0);
+    let redirect = command
+        .prefix
+        .iter()
+        .flat_map(|prefix| &prefix.0)
+        .chain(suffix)
+        .filter_map(|item| {
+            if let ast::CommandPrefixOrSuffixItem::IoRedirect(redirect) = item {
+                Some(redirect)
+            } else {
+                None
+            }
+        })
+        .rfind(|redirect| affects_stdin(redirect));
+    match redirect {
+        Some(ast::IoRedirect::HereDocument(_, document)) => heredoc_text(document),
+        Some(
+            ast::IoRedirect::File(_, _, _)
+            | ast::IoRedirect::HereString(_, _)
+            | ast::IoRedirect::OutputAndError(_, _),
+        )
+        | None => Ok(None),
+    }
+}
+
+fn affects_stdin(redirect: &ast::IoRedirect) -> bool {
+    matches!(
+        redirect,
+        ast::IoRedirect::HereDocument(None | Some(0), _)
+            | ast::IoRedirect::HereString(None | Some(0), _)
+            | ast::IoRedirect::File(Some(0), _, _)
+            | ast::IoRedirect::File(
+                None,
+                ast::IoFileRedirectKind::Read
+                    | ast::IoFileRedirectKind::ReadAndWrite
+                    | ast::IoFileRedirectKind::DuplicateInput,
+                _,
+            )
+    )
 }
 
 fn command_words(suffix: Option<&ast::CommandSuffix>) -> Vec<&ast::Word> {
@@ -220,8 +271,14 @@ fn check_invocation(
     executable: &str,
     arguments: &[&ast::Word],
 ) -> Result<(), Error> {
-    let result =
-        (context.visitor.invocation)(executable, arguments, context.sandbox, context.execution);
+    let stdin = context.stdin.as_deref();
+    let result = (context.visitor.invocation)(
+        executable,
+        arguments,
+        context.sandbox,
+        context.execution,
+        stdin,
+    );
     policy_result(result)?;
     let name = executable_name(executable);
     let wrapper = if executable == "sandbox" {
@@ -266,7 +323,7 @@ fn check_wrapper(
         Wrapper::Sandbox => {
             let nested = Context {
                 sandbox: Sandbox::Inside,
-                ..*context
+                ..context.clone()
             };
             check_launcher(&nested, arguments)
         }
@@ -294,6 +351,7 @@ fn check_docker(context: &Context, arguments: &[&ast::Word]) -> Result<(), Error
                     execution: Execution::Container,
                     sandbox: Sandbox::Outside,
                     visitor: context.visitor,
+                    stdin: None,
                 };
                 check_launcher(&nested, launched)
             } else {
@@ -314,6 +372,7 @@ fn check_ssh(context: &Context, arguments: &[&ast::Word]) -> Result<(), Error> {
         execution: Execution::Remote,
         sandbox: Sandbox::Outside,
         visitor: context.visitor,
+        stdin: None,
     };
     check_eval(&nested, arguments)
 }
@@ -611,18 +670,21 @@ fn literal_word(word: &ast::Word) -> Result<String, Error> {
 }
 
 pub fn static_word(word: &ast::Word) -> Result<Option<String>, Error> {
+    if word.value == "[" {
+        let literal = "[".to_string();
+        let literal = Some(literal);
+        return Ok(literal);
+    }
     let pieces = parse_word(&word.value)?;
     let options = parser_options();
     let brace_expansions = word::parse_brace_expansions(&word.value, &options)?;
     let brace_expansion_parts = brace_expansions.as_deref();
     let has_brace_expansion = has_brace_expansion(brace_expansion_parts);
-    let is_static = pieces.iter().all(|piece| is_static_piece(&piece.piece));
-    if has_brace_expansion || !is_static {
+    if has_brace_expansion {
         return Ok(None);
     }
 
-    let literal = brush_parser::unquote_str(&word.value);
-    let literal = Some(literal);
+    let literal = static_pieces_text(&pieces, false);
     Ok(literal)
 }
 
@@ -657,25 +719,40 @@ pub fn parse_word(value: &str) -> Result<Vec<word::WordPieceWithSource>, Error> 
     Ok(pieces)
 }
 
-fn is_static_piece(piece: &word::WordPiece) -> bool {
+fn static_pieces_text(pieces: &[word::WordPieceWithSource], quoted: bool) -> Option<String> {
+    let pieces = pieces
+        .iter()
+        .map(|piece| static_piece_text(&piece.piece, quoted))
+        .collect::<Option<Vec<_>>>()?;
+    let text = pieces.concat();
+    Some(text)
+}
+
+fn static_piece_text(piece: &word::WordPiece, quoted: bool) -> Option<String> {
     match piece {
-        word::WordPiece::Text(text) => !text.contains(['*', '?', '[']),
-        word::WordPiece::SingleQuotedText(_) | word::WordPiece::EscapeSequence(_) => true,
-        word::WordPiece::DoubleQuotedSequence(pieces) => pieces
-            .iter()
-            .all(|nested_piece| is_static_quoted_piece(&nested_piece.piece)),
-        word::WordPiece::AnsiCQuotedText(_)
+        word::WordPiece::Text(text) if quoted || !text.contains(['*', '?', '[']) => {
+            let text = text.replace("\\\n", "");
+            Some(text)
+        }
+        word::WordPiece::SingleQuotedText(text) => {
+            let text = text.clone();
+            Some(text)
+        }
+        word::WordPiece::EscapeSequence(sequence) => {
+            let text = sequence.strip_prefix('\\')?;
+            let text = text.replace('\n', "");
+            Some(text)
+        }
+        word::WordPiece::DoubleQuotedSequence(pieces) => static_pieces_text(pieces, true),
+        word::WordPiece::Text(_)
+        | word::WordPiece::AnsiCQuotedText(_)
         | word::WordPiece::GettextDoubleQuotedSequence(_)
         | word::WordPiece::TildeExpansion(_)
         | word::WordPiece::ParameterExpansion(_)
         | word::WordPiece::CommandSubstitution(_)
         | word::WordPiece::BackquotedCommandSubstitution(_)
-        | word::WordPiece::ArithmeticExpression(_) => false,
+        | word::WordPiece::ArithmeticExpression(_) => None,
     }
-}
-
-fn is_static_quoted_piece(piece: &word::WordPiece) -> bool {
-    matches!(piece, word::WordPiece::Text(_)) || is_static_piece(piece)
 }
 
 fn check_word(context: &Context, word: &ast::Word) -> Result<(), Error> {
